@@ -10,7 +10,7 @@
                      active-text-color="#0b71df">
                 <el-menu-item index="shortItem"><h1>需求/反馈汇总</h1></el-menu-item>
                 <el-menu-item index="baselineItem"><h1>版本/项目跟踪</h1></el-menu-item>
-                <el-menu-item index="contrlBroad"><h1>管理选项</h1></el-menu-item>
+                <el-menu-item index="contrlBroad"><h1>系统管理</h1></el-menu-item>
             </el-menu>
         </el-col>
         <el-col :span="4" class="exit">
@@ -37,13 +37,13 @@
             <new-item></new-item>
         </div>
     </el-main>
-    <el-footer height="5vh">©2021 Ayden.Shu. All Rights Reserved.</el-footer>
+    <el-footer height="5vh">Copyright ©2021 Ayden.Shu. All Rights Reserved.</el-footer>
 </el-container>
 </template>
 
 
 <script>
-import newItem from '@/components/itemboard/temporary_item'
+import tempItemPage from '@/components/tempItemPage'
 
 export default {
   name: 'mainPage',
@@ -60,7 +60,7 @@ export default {
     props: {
     },
     components: {
-        'new-item' : newItem,
+        'new-item' : tempItemPage,
     },
     computed: {},
     watch: {},

@@ -1,0 +1,29 @@
+{
+  "name": "Simple-Prj-Manager-System",
+  "version": "1.0.0",
+  "description": "a simple pro manager system for work",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "cz-conventional-changelog": "^3.3.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vladivostoks/Simple-Prj-Manager-System.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Vladivostoks/Simple-Prj-Manager-System/issues"
+  },
+  "homepage": "https://github.com/Vladivostoks/Simple-Prj-Manager-System#readme",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}

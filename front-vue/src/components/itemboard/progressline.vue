@@ -28,7 +28,7 @@ export default {
             type: String,
             default: "已终止",
             validator: function (value) {
-                return ['已完成','执行中','已暂停', '已终止'].indexOf(value) !== -1
+                return ['已完成','执行中','暂停中','已终止'].indexOf(value) !== -1
             }
         }
     },
