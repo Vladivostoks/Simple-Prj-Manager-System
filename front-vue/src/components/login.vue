@@ -8,6 +8,7 @@
                               v-model="username"
                               placeholder="用户名"
                               prefix-icon="el-icon-s-check"
+                              autocomplete="on"
                               @keyup.enter.native="login">
                     </el-input>
         </el-row>
@@ -28,29 +29,41 @@
             </el-button>
         </el-row>
     </div>
+    <user-edit :dialogFormVisible="needCreateSuper"
+               headLable="创建超级用户"
+               v-if="needCreateSuper"
+               @dialog-submit="getResult"></user-edit>
 </el-main>
 </el-container>
 </template>
 
 <script>
+import axios from 'axios'
+import user_edit from '@/components/itemboard/adduser'
+import CryptoJS from 'crypto-js/crypto-js'
+
+//设置cookie
+function setCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+}
+
 export default {
     name: 'Login',
     data() {
-      return {
-        username:null,
-        invalid:true,
-        passwd:""
-      }
+        return {
+            needCreateSuper:false,
+            username:null,
+            invalid:true,
+            passwd:""
+        }
     },
-    props: {
-/*
-      color: {
-        type: String,
-        required: true
-      }
-*/
+    props: {},
+    components: {
+        "user-edit":user_edit
     },
-    components: {},
     computed: {},
     watch: {
         username:function (newValue, oldValue) {
@@ -66,20 +79,86 @@ export default {
         }
     },
     methods: {
+        getResult(form) {
+            this.username = form.username;
+            this.passwd = form.newPasswd;
+            this.needCreateSuper=false;
+            this.$refs.name.focus();
+        },
         login() {
-            // TODO:后台check用户
-            // 成功则跳转到主界面,记入cookie
-            document.cookie=`username=${this.username}`;
-            this.$router.push({
-                                path: '/mainPage',
-                                query:{ id:this.username}
-                              });
+            let form = new Object();
+            let self = this;
 
+            form.username = this.username;
+            form.passwd = CryptoJS.SHA256(this.passwd).toString();
+            // 成功则跳转到主界面,记入cookie
+            new Promise(function (resolve, reject) {
+                axios({
+                    url:'/login',
+                    method: 'put',
+                    timeout: 1000,
+                    responseType: 'json',
+                    responseEncoding: 'utf8', 
+                    headers: {
+                            'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    data:form
+                }).then((res) => {
+                    if(res.data.message != "登陆成功")
+                    {
+                        //密码错误
+                        reject(new Error(res.data.message));
+                    }
+                    else
+                    {
+                        resolve(res.data.user_prop);
+                    }
+                }).catch((res)=>{
+                    //字段有问题
+                    reject(res);
+                });
+            }).then(function success(value){
+                /* TODO: 建立websock链路 */
+                return value;
+            }).then(function success(value){
+                setCookie("username",self.username,1);
+                setCookie("userprop",value,1);
+
+                self.$router.push({
+                                    path: '/mainPage',
+                                    params:{ user_prop: value }
+                                  });
+            }).catch(function failed(error){
+                alert(error.message);
+                console.dir(error);
+            });
         }
     },
-    created() {},
+    created() {
+        document.cookie=`username=""`;
+    },
     mounted() {
-        this.$refs.name.focus();
+        // check是否有超级用户
+        axios({
+            url:'/user',
+            method: 'get',
+            timeout: 1000,
+            responseType: 'json',
+            responseEncoding: 'utf8', 
+        }).then((res) => {
+            //没有用户则开启对话框生成超级用户
+            if(!res.data.hasSuperUser)
+            {
+                this.needCreateSuper=true;
+            }
+            else
+            {
+                this.$refs.name.focus();
+            }
+        }).catch((res)=>{
+            //test
+            this.needCreateSuper=true;
+        });
     },
     updated() {},
     destroyed() {}

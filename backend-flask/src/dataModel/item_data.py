@@ -5,24 +5,21 @@ import uuid
 
 # 具体项目数据模型:
 # 1. 项目标记点
+# 1. 项目标记点
 
 
 
 
 
 # 项目列表数据模型:
-# 1. 事务uuid TEXT (主键)
-# 2. 事务创建时间 DATETIME (索引)
+# 1. 项目uuid TEXT (主键)
+# 2. 项目创建时间 DATETIME (索引)
+# 4. 项目名称 TEXT
+# 6. 项目简介 BLOB
+# 9. 参与人员 TEXT
 # 3. 区域 TEXT
-# 4. 事务名称 TEXT
-# 5. 事务类型 TEXT
-# 6. 事务描述(需求/反馈) BLOB
-# 7. 事务预期时间 INTEGER
-# 8. 事务执行状态 TEXT
-# 9. 处理人员 TEXT
-# 10. 关联人员 TEXT
-# 11. 事务关联项目id(外键)
-class AffairList(object):
+# 7. 项目预计到期时间 DATETIME
+class ItemList(object):
 ## 构造
     __CREAT_AFFAIRS_LIST_TABLE = """CREATE TABLE IF NOT EXISTS %(affair_list_table)s(
                                     ID           TEXT PRIMARY KEY,

@@ -191,10 +191,12 @@ export default {
                     }).then((res) => {
                         //判断返回值 
                         console.dir(res.data)
-                        //成功抛出⌚️
+                        //成功抛出
                         this.$emit("dialog-submit",this.form);
                     }).catch((res)=>{
                         alert(`服务请求失败 Code=>${res.request.status}`);
+                        //test
+                        this.$emit("dialog-submit",this.form);
                     });
                 } else {
                     return false;

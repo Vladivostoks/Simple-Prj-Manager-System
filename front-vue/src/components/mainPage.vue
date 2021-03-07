@@ -1,16 +1,17 @@
 <template>
 <el-container>
-    <el-header height="10vh" >
+    <el-header height="8vh" >
         <el-col :span="20" class="guide">
-            <el-menu default-active="shortItem"
+            <el-menu :default-active="curPage"
                      mode="horizontal"
-                     @select="tableChoose"
+                     v-model="curPage"
+                     :router="true"
                      background-color="#E9EEF3"
                      text-color="#545c64"
                      active-text-color="#0b71df">
-                <el-menu-item index="shortItem"><h1>需求/反馈汇总</h1></el-menu-item>
-                <el-menu-item index="baselineItem"><h1>版本/项目跟踪</h1></el-menu-item>
-                <el-menu-item index="contrlBroad"><h1>系统管理</h1></el-menu-item>
+                <el-menu-item index="shortItem"><h1> 事 务 </h1></el-menu-item>
+                <el-menu-item index="baselineItem"><h1> 项 目 </h1></el-menu-item>
+                <el-menu-item index="contrlBroad"><h1> 系 统 </h1></el-menu-item>
             </el-menu>
         </el-col>
         <el-col :span="4" class="exit">
@@ -20,22 +21,12 @@
                         @mouseenter.native="enter"
                         @mouseleave.native="leave"
                         plain>
-                {{ message }}
+                {{ username }}
             </el-button>
         </el-col>
     </el-header>
     <el-main>
-        <div v-if="global">
-            <el-row style="background-color: #F0A5FF"
-                    @click.native="normalItem">
-                短周期项目
-            </el-row>
-            <el-row style="background-color: #50EEFF">长周期项目</el-row>
-            <el-row style="background-color: #60FEFF">TVD项目</el-row>
-        </div>
-        <div v-else>
-            <new-item></new-item>
-        </div>
+        <router-view/>
     </el-main>
     <el-footer height="5vh">Copyright ©2021 Ayden.Shu. All Rights Reserved.</el-footer>
 </el-container>
@@ -45,29 +36,49 @@
 <script>
 import tempItemPage from '@/components/tempItemPage'
 
+function getCookie(cname) {
+    let name = cname + "=";
+    let ca = document.cookie.split(';');
+
+    for(let i=0; i<ca.length; i++) 
+    {
+        let c = ca[i].trim();
+        if (c.indexOf(name)==0) return c.substring(name.length,c.length);
+    }
+    return "";
+}
+
+//设置cookie
+function setCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+}
+
+//清除cookie  
+function clearCookie(name) {  
+    setCookie(name, "", -1);  
+}  
+
 export default {
   name: 'mainPage',
   data() {
         return {
-            message : this.$route.query.id,
+            username : getCookie("username"),
             iconName : "el-icon-user-solid",
             plain   : true,
             round   : false,
             global  : false,
-            activeName : null
+            curPage : "shortItem",
         }
     },
     props: {
     },
-    components: {
-        'new-item' : tempItemPage,
-    },
+    components: {},
     computed: {},
     watch: {},
     methods: {
-        tableChoose(){
-
-        },
         leave(){
             this.iconName = "el-icon-user-solid";
         },
@@ -75,11 +86,22 @@ export default {
             this.iconName = "el-icon-circle-close";
         },
         logout(){
+            clearCookie("username");
+            clearCookie("userprop");
             this.$router.push({ path: '/' });
         }
     },
     created() {},
-    mounted() {},
+    mounted() {
+        if(this.username){
+            this.$router.replace({
+                path: '/mainPage/shortItem'
+            });
+        }
+        else{
+            this.logout();
+        }
+    },
     updated() {},
     destroyed() {}
 }
@@ -95,28 +117,26 @@ export default {
         padding: 0px;
     }
 
-    .guide {
+    .el-header .guide {
         display:flex;
         justify-content:left;/*主轴上居中*/
-        align-items:flex-end;/*侧轴上居中*/
+        align-items:center;/*侧轴上居中*/
+    }
+
+    .el-header h1{
+        height:8vh;
+    }
+
+    .el-header .el-col,
+    .el-header .el-menu,
+    .el-header .el-menu-item{
+        height: 100%;
     }
 
     .exit {
         display:flex;
         justify-content:center;/*主轴上居中*/
         align-items:center;/*侧轴上居中*/
-        height: 100%;
-    }
-
-    .el-header .el-col {
-        height: 100%;
-    }
-
-    .el-menu {
-        height: 100%;
-    }
-
-    .el-menu-item {
         height: 100%;
     }
 

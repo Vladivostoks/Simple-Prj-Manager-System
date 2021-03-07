@@ -6,9 +6,10 @@ from flask_restful import Api
 
 #from apiRoute.affair import *
 from apiRoute.login import *
+from apiRoute.affair import *
 
 
-app = Flask(__name__)
+app = Flask(__name__,static_url_path='/static',static_folder='../static')
 api = Api(app)
 
 @app.route('/')
@@ -17,7 +18,7 @@ def index():
 
 @app.route('/static/<file_name>')
 def static_file_request(file_name):
-    return app.send_static_file(f'static/{file_name}')
+    return app.send_static_file(f'{file_name}')
 
 ##
 ## Backend API
@@ -28,9 +29,8 @@ api.add_resource(Login, '/login')
 ##
 ## Item&Affairs API
 ##
-
-#api.add_resource(Affair, '/affair/<string:affair_id>')
-#api.add_resource(Login, '/item/<string:affair_id>')
+api.add_resource(Affairs,'/affair')
+api.add_resource(AffairsContent,'/affair/<string:affair_id>')
 
 if __name__ == '__main__':
     app.run(debug=True,host='127.0.0.1',port=8080)
