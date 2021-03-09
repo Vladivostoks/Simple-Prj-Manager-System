@@ -86,17 +86,16 @@
             <el-table-column type="expand">
                 <template slot-scope="scope">
                     <self-timeline 
-                    :projectStatus="getSchemeType(scope.$index,scope.row)"
-                    :project_index="{date:scope.row.creat_date,name:scope.row.prjname}">
+                    :project_uuid="scope.row.uuid"
+                    :project_status="getSchemeType(scope.$index,scope.row)"
+                    :project_index="scope.row.uuid">
                     </self-timeline>
                 </template>
             </el-table-column>
             <el-table-column
                 min-width="3%"
-                label="序号">
-                <template slot-scope="scope">
-                    {{ `${scope.$index}` }}
-                </template>
+                type="index"
+                >
             </el-table-column>
             <el-table-column
                 prop="creat_date"
@@ -724,9 +723,6 @@ export default {
                     timeout: 1000,
                     responseType: 'json',
                     responseEncoding: 'utf8', 
-                    headers: {
-                        'Content-Type': 'application/json;charset=UTF-8'
-                    },
                     params: req
                 }).then((res) => {
                     self.tableData = res.data;

@@ -52,25 +52,31 @@ class AffairsContent(Resource):
             return '{"message":"删除成功"}', 200
     
     #完成事务的修改和添加
-    def put(self, affair_id):
+    def post(self, affair_id):
         put_parser = reqparse.RequestParser()
 
         # 插入具体事件时间线
         put_parser.add_argument('index', dest='index',
                                 type=int, location='json',
                                 required=False)
-        put_parser.add_argument('date', dest='date',
+        put_parser.add_argument('timestamp', dest='timestamp',
                                 type=int, location='json',
-                                required=True, help='Need input region for creating affair.')
+                                required=True, help='Need input date or type error.')
         put_parser.add_argument('progress_content', dest='progress_content',
                                 type=str, location='json',
-                                required=True, help='Need input affair name for creating affair.')
+                                required=True, help='Need input progress_content or type error.')
         put_parser.add_argument('progress_result', dest='progress_result',
                                 type=str, location='json',
-                                required=True, help='Need input affair type for creating affair.')
+                                required=True, help='Need input progress_result or type error.')
+        put_parser.add_argument('project_status', dest='project_status',
+                                type=str, location='json',
+                                required=True, help='Need input project_status or type error.')
         put_parser.add_argument('percent', dest='percent',
                                 type=int, location='json',
-                                required=True, help='Need input brief for creating affair.')
+                                required=True, help='Need input percent or type error.')
+        put_parser.add_argument('author', dest='author',
+                                type=str, location='json',
+                                required=True, help='Need input author or type error.')
         req = put_parser.parse_args()
 
         AFFAIR_CONTENT_DATA_DB_LOCK.acquire()

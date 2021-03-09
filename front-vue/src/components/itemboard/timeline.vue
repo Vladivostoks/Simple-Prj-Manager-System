@@ -27,6 +27,10 @@
             v-model="form.resultContent">
             </el-input>
         </el-form-item>
+        <el-form-item label="实施进度" prop="percent">
+            <el-slider style="width:20vw"
+                       v-model="form.percent"></el-slider>
+        </el-form-item>
     </el-form>
     <el-button
         size="mini"
@@ -43,18 +47,18 @@
     <el-timeline-item
         v-for="(activity, index) in activities_"
         :key="index"
-        :type="activity.type"
+        :type="activity.project_status"
         placement="top"
-        :timestamp="activity.timestamp">
+        :timestamp="activity.timestamp+' Author: '+ activity.author+' '+activity.percent+'%'">
         <el-card shadow="hover" style="width:30vw;margin:20px 0;">
             <div style="overflow:hidden;" >
                 <div style="float:left;width:10%;">[进展]:</div>
-                <pre style="float:left;width:90%;margin:0 0">{{activity.done}}</pre>
+                <pre style="float:left;width:90%;margin:0 0">{{activity.progress_content}}</pre>
             </div>
             <el-divider></el-divider>
             <div style="overflow:hidden;" >
                 <div style="float:left;width:10%;">[结果]:</div>
-                <pre style="float:left;width:90%;margin:0 0">{{activity.result}}</pre>
+                <pre style="float:left;width:90%;margin:0 0">{{activity.progress_result}}</pre>
             </div>
         </el-card>
         <el-button
@@ -82,6 +86,15 @@ function getCookie(cname)
     return "";
 }
 
+function date2str(date_input){
+    let date_obj = new Date(date_input);
+    let year = date_obj.getFullYear();
+    let month = date_obj.getMonth() + 1 < 10 ? "0" + (date_obj.getMonth() + 1)
+            : date_obj.getMonth() + 1;
+    let day = date_obj.getDate() < 10 ? "0" + date_obj.getDate() : date_obj.getDate();
+    return (year + "-" + month + "-" + day);
+}
+
 export default {
     name: 'time_line',
     data(){
@@ -91,11 +104,17 @@ export default {
                 contentStaus:'',
                 doneContent:'',
                 resultContent:'',
+                percent:0,
             },
             /* 新增栏状态 */
             addStatus:false,
             /* 时间线活动记录 */
-            activities_:[],
+            activities_:[{
+                project_status : "danger",
+                progress_content: "项目时间线获取失败",
+                progress_result: "新增项目结果",
+                timestamp: new Date().toString()
+            }],
             rules: {
                 doneContent: [
                     { required: true, message: '请填写实施内容', trigger: 'blur' },
@@ -104,65 +123,34 @@ export default {
                 resultContent: [
                     { required: true, message: '请填写实施结果', trigger: 'blur' },
                     { min: 4, message: '长度需要大于4个字符', trigger: 'blur' }
+                ],
+                percent: [
+                    { min: 0, max: 100, type:'integer' ,trigger: 'blur' }
                 ]
             }
         }
     },
     props: {
         /*项目名称 用来从后台获取具体项目的时间线 */
-        project_index: {
-            type: Object,
-            default: function () {
-                return { date: 'None',name: "None" }
-            }
+        project_uuid: {
+            type: String,
+            required: true
         },
         /* 当前项目状态,生成新时间线的时候标注使用 */
-        projectStatus: {
+        project_status: {
             type: String,
             default: "success"
-        },
-        /*时间线内容*/
-        activities: {
-            type: Array,
-            default: function () {
-                return  [{
-                            type : "danger",
-                            done: "项目时间线获取失败",
-                            result: "新增项目结果",
-                            timestamp: new Date().toString()
-                        },
-                        {
-                            type : "warning",
-                            done: "项目时间线获取失败",
-                            result: "新增项目结果",
-                            timestamp: new Date().toString()
-                        },{
-                            type : "primary",
-                            done: "项目时间线获取失败",
-                            result: "新增项目结果",
-                            timestamp: new Date().toString()
-                        },{
-                            type : "info",
-                            done: "项目时间线获取失败",
-                            result: "新增项目结果",
-                            timestamp: new Date().toString()
-                        },{
-                            type : "success",
-                            done: "项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败项目时间线获取失败",
-                            result: "新增项目结果",
-                            timestamp: new Date().toString()
-                        },{
-                            type : "info",
-                            done: "项目时间线获取失败",
-                            result: "新增项目结果",
-                            timestamp: new Date().toString()
-                        }
-                ]
-            }
         }
     },
     computed: {},
-    watch: {},
+    watch: {
+        addStatus: function(newVal, oldVal) {
+            if(newVal)
+            {
+                this.form.percent = this.activities_[0].percent;
+            }
+        }
+    },
     methods: {
         closeEdit(){
             //切换编辑状态
@@ -179,16 +167,43 @@ export default {
                     console.dir(valid);
                     if (valid)
                     {
-                        let new_data={};
-
-                        new_data.type = (this.projectStatus == "error"?"danger":this.projectStatus);
+                        let data={};
+                        let self = this;
+                        
                         /*回车换行处理*/
-                        new_data.done = this.form.doneContent;
-                        new_data.result = this.form.resultContent;
-                        new_data.timestamp = new Date().toString() +" Author: "+ getCookie("username");
+                        data.timestamp = new Date().getTime();
+                        data.progress_content = this.form.doneContent;
+                        data.progress_result = this.form.resultContent;
+                        data.percent = 10;//#TODO
+                        console.dir(this.project_status)
+                        data.project_status = (this.project_status == "error"?"danger":this.project_status);
+                        data.author = getCookie("username");
 
-                        this.activities_.unshift(new_data);
-                        this.closeEdit();
+                        axios({
+                            url:'/affair/'+self.project_uuid,
+                            method: 'post',
+                            timeout: 1000,
+                            responseType: 'json',
+                            responseEncoding: 'utf8', 
+                            headers: {
+                                    'Content-Type': 'application/json;charset=UTF-8'
+                            },
+                            data:data
+                        }).then((res) => {
+                            if(res.data.message == "插入成功") 
+                            {
+                                data.timestamp = new Date(data.timestamp).toString();
+                                self.activities_.unshift(data);
+                                self.closeEdit();
+                                self.$message({
+                                    type: 'success',
+                                    message: '添加时间线成功!'
+                                });
+                            }
+                        }).catch((res)=>{
+                            //Do nothing
+                            console.dir(res);
+                        }); 
                     }
                     else
                     {
@@ -207,11 +222,36 @@ export default {
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(() => {
-                this.activities_.splice(index,1);
-                this.$message({
-                    type: 'success',
-                    message: '删除成功!'
-                });
+                //todo axios
+                //提交项目变更
+                let data = new Object();
+                let self = this;
+
+                data.index = this.activities_[index].index_num;
+                
+                axios({
+                    url:'/affair/'+self.project_uuid,
+                    method: 'delete',
+                    timeout: 1000,
+                    responseType: 'json',
+                    responseEncoding: 'utf8', 
+                    headers: {
+                            'Content-Type': 'application/json;charset=UTF-8'
+                    },
+                    data:data
+                }).then((res) => {
+                    if(res.data.message == "删除成功") 
+                    {
+                        self.activities_.splice(index,1);
+                        self.$message({
+                            type: 'success',
+                            message: '删除成功!'
+                        });
+                    }
+                }).catch((res)=>{
+                    //Do nothing
+                    console.dir(res);
+                }); 
             }).catch(() => {
             });
         }
@@ -219,17 +259,27 @@ export default {
     created() {
         /* axio 从后台获取具体项目的时间线 */
         let self = this;
+        let req = new Object();
+
+        req.start_time = new Date(1970,1,1).getTime();
+        req.end_time = new Date().getTime();
 
         axios({
-            url:'/'+self.projectName+'/timelineContent',
+            url:'/affair/'+self.project_uuid,
             method: 'get',
             timeout: 1000,
             responseType: 'json',
             responseEncoding: 'utf8', 
+            params: req
         }).then((res) => {
-            self.activities_ = res.data.timelineContent;
+            self.activities_ = res.data;
+            for(let i in self.activities_)
+            {
+                self.activities_[i].timestamp = new Date(self.activities_[i].timestamp).toString();
+            }
         }).catch((err) => {
             //default do nothing
+            console.dir(err);
             self.activities_ = self.activities;
         });
     },

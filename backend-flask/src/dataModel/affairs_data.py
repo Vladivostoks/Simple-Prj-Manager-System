@@ -19,35 +19,37 @@ def dict_factory(cursor, row):
 # 2. 执行记录时间 DATETIME (索引)
 # 2. 执行进展 BLOB
 # 3. 执行结果 BLOB
-# 4. 执行人员
-# 5. 当前执行项所处的项目百分比进度 INTEGER
+# 4. 当前执行项所处的项目百分比进度 INTEGER
+# 5. 记录人员 TEXT
 class AffairContent(object):
     # 构造
     __CREAT_AFFAIRS_CONTENT_TABLE = """CREATE TABLE IF NOT EXISTS '%(affair_id)s'(
-                                       IndexNum        INTEGER PRIMARY KEY AUTOINCREMENT,
-                                       Date            DATETIME NOT NULL,
-                                       ProgressContent BLOB,
-                                       ProgressResult  BLOB,
-                                       Percent         INTEGER NOT NULL);
+                                       index_num        INTEGER PRIMARY KEY AUTOINCREMENT,
+                                       timestamp        DATETIME NOT NULL,
+                                       progress_content BLOB,
+                                       progress_result  BLOB,
+                                       project_status   TEXT NOT NULL,
+                                       percent          INTEGER NOT NULL,
+                                       author           TEXT NOT NULL);
                                     """
     # 按照时间建立索引
-    __CREAT_AFFAIRS_CONTENT_INDEX = "CREATE INDEX IF NOT EXISTS IDXDate on '%(affair_id)s'(Date);"
+    __CREAT_AFFAIRS_CONTENT_INDEX = "CREATE INDEX IF NOT EXISTS IDXDate on '%(affair_id)s'(timestamp);"
 
     # 按照时间区间查找
     __SEARCH_CONTENT_WITH_TIME = """SELECT * FROM "%(affair_id)s"
-                                    WHERE Date >= %(start_time)d and Date <= %(end_time)d
-                                    ORDER BY Date,Percent DESC;"""
+                                    WHERE timestamp >= %(start_time)d and timestamp <= %(end_time)d
+                                    ORDER BY index_num DESC;"""
 
     # 插入数据
-    __ADD_CONTENT = """INSERT INTO '%(affair_id)s'(Date,ProgressContent,ProgressResult,Percent)
-                       VALUES('%(date)d','%(progress_content)s','%(progress_result)s','%(percent)d');
+    __ADD_CONTENT = """INSERT INTO '%(affair_id)s'(timestamp,progress_content,progress_result,project_status,percent,author)
+                       VALUES('%(timestamp)d','%(progress_content)s','%(progress_result)s','%(project_status)s','%(percent)d','%(author)s');
                     """
     #替换数据
-    __REPLACE_CONTENT = """REPLACE INTO '%(affair_id)s'(IndexNum,Date,ProgressContent,ProgressResult,Percent)
-                           VALUES('%(index)d','%(date)d','%(progress_content)s','%(progress_result)s','%(percent)d');
+    __REPLACE_CONTENT = """REPLACE INTO '%(affair_id)s'(index_num,timestamp,progress_content,progress_result,project_status,percent,author)
+                           VALUES('%(index)d','%(timestamp)d','%(progress_content)s','%(progress_result)s','%(project_status)s','%(percent)d','%(author)s');
                         """
     # 删除数据
-    __DELETE_CONTENT = 'DELETE FROM "%(affair_id)s" WHERE IndexNum=%(index)d;'
+    __DELETE_CONTENT = 'DELETE FROM "%(affair_id)s" WHERE index_num=%(index)d;'
 
     # 删除表
     __DELETE_TABLE = 'DROP TABLE "%(affair_id)s";'
@@ -58,6 +60,7 @@ class AffairContent(object):
 
         try:
             self.__db = sqlite3.connect(db_file)
+            self.__db.row_factory = dict_factory
             cursor = self.__db.cursor()
 
             #为项目建表,affair_id应该是合法的
@@ -77,21 +80,24 @@ class AffairContent(object):
     #修改一条记录
     def replace_record(self,
                        index,
-                       date,
+                       timestamp,
                        progress_content,
                        progress_result,
-                       percent):
+                       project_status,
+                       percent,
+                       author):
         try:
             cursor = self.__db.cursor()
 
             if self.__affair_id != "":
-                print(1)
                 cursor.execute(self.__REPLACE_CONTENT % {"affair_id":self.__affair_id,
                                                          "index":index,
-                                                         "date":date,
+                                                         "timestamp":timestamp,
                                                          "progress_content":progress_content,
                                                          "progress_result":progress_result,
-                                                         "percent":percent})
+                                                         "project_status":project_status,
+                                                         "percent":percent,
+                                                         "author":author})
             cursor.close()
             self.__db.commit()
 
@@ -103,19 +109,22 @@ class AffairContent(object):
 
     #增加/修改一条记录
     def add_record(self,
-                   date,
+                   timestamp,
                    progress_content,
                    progress_result,
-                   percent):
+                   project_status,
+                   percent,
+                   author):
         try:
             cursor = self.__db.cursor()
-
             if self.__affair_id != "":
                 cursor.execute(self.__ADD_CONTENT % {"affair_id":self.__affair_id,
-                                                     "date":date,
+                                                     "timestamp":timestamp,
                                                      "progress_content":progress_content,
                                                      "progress_result":progress_result,
-                                                     "percent":percent})
+                                                     "project_status":project_status,
+                                                     "percent":percent,
+                                                     "author":author})
             cursor.close()
             self.__db.commit()
 
@@ -149,6 +158,9 @@ class AffairContent(object):
             cursor = self.__db.cursor()
 
             if self.__affair_id != "":
+                # 外部时间字符串转时间戳
+                #start_time = time.mktime(time.strptime(start_time, "%Y-%m-%d"))
+                #end_time = time.mktime(time.strptime(end_time, "%Y-%m-%d"))
                 cursor.execute(self.__SEARCH_CONTENT_WITH_TIME % {"affair_id":self.__affair_id,
                                                                   "start_time":start_time,
                                                                   "end_time":end_time})
@@ -156,7 +168,7 @@ class AffairContent(object):
             cursor.close()
         except Exception as e:
             pprint.pprint(e)
-
+        pprint.pprint(result)
         return result
 
     # 删除表
@@ -291,6 +303,7 @@ class AffairList(object):
                    relateitemid):
         try:
             cursor = self.__db.cursor()
+            pprint.pprint(createdate)
             if not createdate:
                 # 直接拿时间戳
                 createdate = int(time.time())
