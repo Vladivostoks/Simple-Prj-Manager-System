@@ -19,8 +19,9 @@ def dict_factory(cursor, row):
 # 2. 执行记录时间 DATETIME (索引)
 # 2. 执行进展 BLOB
 # 3. 执行结果 BLOB
-# 4. 当前执行项所处的项目百分比进度 INTEGER
-# 5. 记录人员 TEXT
+# 4. 记录时刻的项目是否超期情况 TEXT
+# 5. 当前执行项所处的项目百分比进度 INTEGER
+# 6. 记录人员 TEXT
 class AffairContent(object):
     # 构造
     __CREAT_AFFAIRS_CONTENT_TABLE = """CREATE TABLE IF NOT EXISTS '%(affair_id)s'(
@@ -44,6 +45,9 @@ class AffairContent(object):
     __ADD_CONTENT = """INSERT INTO '%(affair_id)s'(timestamp,progress_content,progress_result,project_status,percent,author)
                        VALUES('%(timestamp)d','%(progress_content)s','%(progress_result)s','%(project_status)s','%(percent)d','%(author)s');
                     """
+    # 找到最后递增id
+    __FIND_LAST_INSERT_ROWID = "SELECT LAST_INSERT_ROWID() FROM '%(affair_id)s'"
+                       
     #替换数据
     __REPLACE_CONTENT = """REPLACE INTO '%(affair_id)s'(index_num,timestamp,progress_content,progress_result,project_status,percent,author)
                            VALUES('%(index)d','%(timestamp)d','%(progress_content)s','%(progress_result)s','%(project_status)s','%(percent)d','%(author)s');
@@ -125,6 +129,8 @@ class AffairContent(object):
                                                      "project_status":project_status,
                                                      "percent":percent,
                                                      "author":author})
+                cursor.execute(self.__FIND_LAST_INSERT_ROWID % {"affair_id":self.__affair_id})
+                ret = cursor.fetchone()["LAST_INSERT_ROWID()"]
             cursor.close()
             self.__db.commit()
 
@@ -132,7 +138,7 @@ class AffairContent(object):
             pprint.pprint(e)
             return False
 
-        return True
+        return ret
 
     #删除指定记录
     def delete_record(self,index):
@@ -168,7 +174,25 @@ class AffairContent(object):
             cursor.close()
         except Exception as e:
             pprint.pprint(e)
-        pprint.pprint(result)
+        return result
+
+    #查询最后一条记录
+    def search_latest_record(self):
+        result=[]
+        try:
+            cursor = self.__db.cursor()
+            if self.__affair_id != "":
+                # 外部时间字符串转时间戳
+                #start_time = time.mktime(time.strptime(start_time, "%Y-%m-%d"))
+                #end_time = time.mktime(time.strptime(end_time, "%Y-%m-%d"))
+                # 执行记录前端输入的戳带毫秒
+                cursor.execute(self.__SEARCH_CONTENT_WITH_TIME % {"affair_id":self.__affair_id,
+                                                                  "start_time":0,
+                                                                  "end_time":time.time()*1000})
+            result = cursor.fetchone()
+            cursor.close()
+        except Exception as e:
+            pprint.pprint(e)
         return result
 
     # 删除表
@@ -206,7 +230,7 @@ class AffairList(object):
 ## 构造
     __CREAT_AFFAIRS_LIST_TABLE = """CREATE TABLE IF NOT EXISTS %(affair_list_table)s(
                                     uuid            TEXT PRIMARY KEY,
-                                    creat_date      DATETIME NOT NULL,
+                                    create_date      DATETIME NOT NULL,
                                     region          TEXT,
                                     prjname         TEXT NOT NULL,
                                     prjtype         TEXT NOT NULL,
@@ -222,11 +246,11 @@ class AffairList(object):
                                     #FOREIGN KEY (relate_itemid) REFERENCES %(item_list_table)s(uuid)
                                     #ON DELETE SET NULL ON UPDATE CASCADE);
     # 按照时间建立索引
-    __CREAT_AFFAIRS_LIST_INDEX = "CREATE INDEX IF NOT EXISTS IDXCreateDate on %(affair_list_table)s(creat_date);"
+    __CREAT_AFFAIRS_LIST_INDEX = "CREATE INDEX IF NOT EXISTS IDXCreateDate on %(affair_list_table)s(create_date);"
 
     # 按照创建时间区间查找
     __SEARCH_AFFAIRS_WITH_TIME = """SELECT * FROM %(affair_list_table)s 
-                                    WHERE creat_date >= %(start_time)d and creat_date <= %(end_time)d
+                                    WHERE create_date >= %(start_time)d and create_date <= %(end_time)d
                                  """
     # 按照更新时间去去查找
     __SEARCH_AFFAIRS_WITH_UPDATE_TIME = """SELECT * FROM %(affair_list_table)s 
@@ -235,7 +259,7 @@ class AffairList(object):
 
     # 插入/替换数据
     __ADD_AFFAIRS = """REPLACE INTO %(affair_list_table)s(uuid,
-                                                          creat_date,
+                                                          create_date,
                                                           region,
                                                           prjname,
                                                           prjtype,
@@ -303,13 +327,12 @@ class AffairList(object):
                    relateitemid):
         try:
             cursor = self.__db.cursor()
-            pprint.pprint(createdate)
             if not createdate:
                 # 直接拿时间戳
                 createdate = int(time.time())
             else:
                 # 外部时间字符串转时间戳
-                createdate = time.mktime(time.strptime(createdate, "%Y-%m-%d"))
+                createdate = int(time.mktime(time.strptime(createdate, "%Y-%m-%d")))
 
             if not id:
                 id = str(uuid.uuid4())
@@ -375,7 +398,7 @@ class AffairList(object):
             # 是否限定人员
             if other_param["username"] and other_param["userprop"] == "normalizer": 
                 # sql注入? 待测试
-                sql = sql + f""" and duty_persons LIKE "${other_param['username']}" """
+                sql = sql + f""" and duty_persons LIKE "{other_param['username']}" """
 
             cursor.execute(sql % {"affair_list_table":self.__table_name,
                                   "start_time":time.mktime(time.strptime(start_time, "%Y-%m-%d")),
@@ -388,7 +411,6 @@ class AffairList(object):
 
         # 修饰
         for res in result:
-            res["creat_date"] = time.strftime("%Y-%m-%d", time.localtime(res["creat_date"]))
             if res["prjtype"]!=None and res["prjtype"]!="":
                 res["prjtype"] = res["prjtype"].split(",")
 

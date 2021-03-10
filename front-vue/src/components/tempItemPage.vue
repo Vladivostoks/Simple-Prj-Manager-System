@@ -56,12 +56,8 @@
         <el-col :span="7" class="timerange">
             <el-button
                 size="mini"
-                type="info"
-                @click="exportItem()">导出当前记录</el-button>
-            <el-button
-                size="mini"
                 type="success"
-                v-show="table_status!='complete'">提交项目记录</el-button>
+                @click="exportItem()">导出当前记录</el-button>
             <el-button
                 size="mini"
                 type="primary"
@@ -86,6 +82,7 @@
             <el-table-column type="expand">
                 <template slot-scope="scope">
                     <self-timeline 
+                    @timeline-submit="timelineSubmit"
                     :project_uuid="scope.row.uuid"
                     :project_status="getSchemeType(scope.$index,scope.row)"
                     :project_index="scope.row.uuid">
@@ -98,7 +95,7 @@
                 >
             </el-table-column>
             <el-table-column
-                prop="creat_date"
+                prop="create_date"
                 min-width="6%"
                 label="创建日期">
             </el-table-column>
@@ -123,7 +120,7 @@
                 <template slot-scope="scope">
                     <el-tag 
                     disable-transitions
-                    type="info"
+                    type="danger"
                     size="small"
                     style="margin: 1px;"
                     v-for="item in scope.row.prjtype"
@@ -197,7 +194,7 @@
                 <template slot-scope="scope">
                     <el-tag 
                     disable-transitions 
-                    type="warning"
+                    type="success"
                     size="small"
                     style="margin: 1px;"
                     v-for="item in scope.row.relate_persons"
@@ -251,36 +248,8 @@ import axios from 'axios'
 import item_edit from '@/components/itemboard/dialog'
 import time_line from '@/components/itemboard/timeline'
 import process_line from '@/components/itemboard/progressline'
+import {getCookie,creatUuid,date2str} from '@/assets/js/common.js'
 
-function timestrToNum(timestr) {
-    let date = new Date(timestr);
-    let Y = date.getFullYear();
-    let M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1):date.getMonth()+1);
-    let D = (date.getDate()< 10 ? '0'+date.getDate():date.getDate());
-    return Y+M+D;
-}
-
-function date2str(date_input){
-    let date_obj = new Date(date_input);
-    let year = date_obj.getFullYear();
-    let month = date_obj.getMonth() + 1 < 10 ? "0" + (date_obj.getMonth() + 1)
-            : date_obj.getMonth() + 1;
-    let day = date_obj.getDate() < 10 ? "0" + date_obj.getDate() : date_obj.getDate();
-    return (year + "-" + month + "-" + day);
-}
-
-function getCookie(cname)
-{
-    let name = cname + "=";
-    let ca = document.cookie.split(';');
-
-    for(let i=0; i<ca.length; i++) 
-    {
-        let c = ca[i].trim();
-        if (c.indexOf(name)==0) return c.substring(name.length,c.length);
-    }
-    return "";
-}
 
 /*获取当前生效时间段*/
 function getTimeRange(data_range)
@@ -292,14 +261,6 @@ function getTimeRange(data_range)
     ret.end_time = date2str(data_range[1]);
 
     return ret;
-}
-
-/* 生成uuid */
-function uuid() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-        return v.toString(16);
-    });
 }
 
 export default {
@@ -326,7 +287,7 @@ export default {
             /*展示列表*/
             tableData:[/*{
                 uuid: '2e0e322a-503a-47fd-b28b-3a1202b55502',
-                creat_date: '2021-02-19',
+                create_date: '2021-02-19',
                 prjname: 'xx区域xx项目',
                 brief: '客户反馈xx问题/客户新增xx需求',
                 region: '西安',
@@ -518,7 +479,7 @@ export default {
         /* 获取执行进度和当前进度比较字符串 */
         getSchemeType(index,row){
             let cur_timestamp = new Date().getTime();
-            let start_timestamp = new Date(row.creat_date).getTime();
+            let start_timestamp = new Date(row.create_date).getTime();
 
             let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
 
@@ -538,7 +499,7 @@ export default {
         /* 获取规划字符串 */
         getSchemeStr(index,row){
             let cur_timestamp = new Date().getTime();
-            let start_timestamp = new Date(row.creat_date).getTime();
+            let start_timestamp = new Date(row.create_date).getTime();
 
             let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
 
@@ -596,6 +557,29 @@ export default {
             
             /* 重新触发检索过程 */
             this.affairGet(getTimeRange(time_range),this.table_status);
+        },
+        /* 时间线更新 */
+        timelineSubmit(uuid,percent){
+            console.dir("timeline of "+uuid+" update:"+percent);
+            // 联动项目更新
+            for(let i=0; i<this.tableData.length; i++) 
+            {
+                console.dir(this.tableData[i].uuid)
+                console.dir(this.tableData[i].uuid==uuid)
+                if(this.tableData[i].uuid == uuid)
+                {
+                    this.tableData[i].percent = percent;
+                    if(this.tableData[i].percent==100)
+                    {
+                        this.tableData[i].status="已完成";
+                    }
+                    this.affairPut(this.tableData[i]).then(()=>{
+                        //更新数据显示
+                        this.tableKey = Math.random();
+                    });
+                    break;
+                }
+            }
         },
         /* 项目类型产生变化,需要更新表单 */
         selectItemWithStatus(index,indexPath){
@@ -666,7 +650,7 @@ export default {
                     }
 
                     let cur_timestamp = new Date().getTime();
-                    let start_timestamp = new Date(data.creat_date).getTime();
+                    let start_timestamp = new Date(data.create_date).getTime();
                     let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
 
                     week = Math.ceil(week);
@@ -720,7 +704,7 @@ export default {
                 axios({
                     url:'/affair',
                     method: 'get',
-                    timeout: 1000,
+                    timeout: 5000,
                     responseType: 'json',
                     responseEncoding: 'utf8', 
                     params: req
@@ -752,6 +736,7 @@ export default {
                             if(this.tableData[i].uuid == uuid)
                             {
                                 this.tableData[i] = new_data;
+                                break;
                             }
                         }
                         this.$message.success('修改记录成功!');
@@ -759,7 +744,7 @@ export default {
                     else
                     {
                         //生成uuid
-                        new_data.uuid = uuid();
+                        new_data.uuid = creatUuid();
                         console.dir(new_data);
                         //新增
                         this.tableData.unshift(new_data);
@@ -787,7 +772,7 @@ export default {
             /*无索引*/
             this.editIndex = -1;
             this.editDefault = {
-                creat_date: date2str(new Date()),
+                create_date: date2str(new Date()),
                 prjname: '',
                 prjtype: [],
                 brief: '',
@@ -815,14 +800,13 @@ export default {
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(() => {
-                console.dir(123123123);
                 let req = new Object();
 
                 req.uuid = row.uuid;
                 axios({
                     url:'/affair',
                     method: 'delete',
-                    timeout: 1000,
+                    timeout: 5000,
                     responseType: 'json',
                     responseEncoding: 'utf8', 
                     headers: {
@@ -843,6 +827,7 @@ export default {
                             if(this.tableData[i].uuid == row.uuid)
                             {
                                 this.tableData.splice(i,1);
+                                break;
                             }
                         }
                     }
@@ -860,7 +845,7 @@ export default {
                 axios({
                     url:'/affair',
                     method: 'put',
-                    timeout: 1000,
+                    timeout: 5000,
                     responseType: 'json',
                     responseEncoding: 'utf8', 
                     headers: {

@@ -2,6 +2,7 @@
 import pprint
 import sys
 import threading
+import time
 from flask import Flask,abort
 from flask_restful import reqparse, Resource, reqparse
 from dataModel import affairs_data 
@@ -90,7 +91,7 @@ class AffairsContent(Resource):
         if not ret:
             return '{"message":"插入失败"}', 200
         else:
-            return '{"message":"插入成功"}', 200
+            return f'{{"message":"插入成功","index_num":{ret}}}', 200
 
 
 class Affairs(Resource):
@@ -121,6 +122,30 @@ class Affairs(Resource):
         # 查询事件列表
         ret = affairs_data.AffairList(LIST_DATA_DB).search_record(**req)
         LIST_DATA_DB_LOCK.release()
+
+        # 查询具体事务,调整部分事件列表中的内容
+        for affair in ret:
+            AFFAIR_CONTENT_DATA_DB_LOCK.acquire()
+            # 查询具体事件时间线
+            timeline = affairs_data.AffairContent(AFFAIR_CONTENT_DATA_DB,affair["uuid"]).search_latest_record()
+            AFFAIR_CONTENT_DATA_DB_LOCK.release()
+
+            if timeline:
+                if (time.time()*1000-timeline["timestamp"]) > 7*24*60*60*1000:
+                    if affair["status"]=="执行中":
+                        # 超过一周没更新，执行任务状态设置为暂停
+                        affair["status"] = "暂停中" 
+                else:
+                    if affair["status"]!="已完成":
+                        # 超过一周没更新，执行任务状态设置为暂停
+                        affair["status"] = "执行中" 
+                #新增进度
+                affair["percent"] = timeline['percent']
+            else:
+                if (time.time()-affair["create_date"]) > 7*24*60*60 and affair["status"]=="执行中":
+                    affair["status"] = "暂停中" 
+                affair["percent"] = 0
+            affair["create_date"] = time.strftime("%Y-%m-%d", time.localtime(affair["create_date"]))
 
         return ret
 

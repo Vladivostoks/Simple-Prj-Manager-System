@@ -41,14 +41,7 @@
 import axios from 'axios'
 import user_edit from '@/components/itemboard/adduser'
 import CryptoJS from 'crypto-js/crypto-js'
-
-//设置cookie
-function setCookie(cname, cvalue, exdays) {
-    var d = new Date();
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
-    var expires = "expires="+d.toUTCString();
-    document.cookie = cname + "=" + cvalue + "; " + expires;
-}
+import {setCookie} from '@/assets/js/common.js'
 
 export default {
     name: 'Login',
@@ -96,7 +89,7 @@ export default {
                 axios({
                     url:'/login',
                     method: 'put',
-                    timeout: 1000,
+                    timeout: 5000,
                     responseType: 'json',
                     responseEncoding: 'utf8', 
                     headers: {
@@ -142,7 +135,7 @@ export default {
         axios({
             url:'/user',
             method: 'get',
-            timeout: 1000,
+            timeout: 5000,
             responseType: 'json',
             responseEncoding: 'utf8', 
         }).then((res) => {

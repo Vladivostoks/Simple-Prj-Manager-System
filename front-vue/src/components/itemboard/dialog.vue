@@ -3,11 +3,12 @@
   :title="editIndex>=0?'编辑项目':'新建项目'"
   :visible.sync="dialogFormVisible"
   :before-close="handleClose"
+  :close-on-click-modal="false"
   width="30%">
   <el-form :model="form" ref="form" size="mini" :rules="rules">
-    <el-form-item label="创建日期" label-width="120px" prop="creat_date">
+    <el-form-item label="创建日期" label-width="120px" prop="create_date">
         <el-date-picker
-        v-model="form.creat_date"
+        v-model="form.create_date"
         type="date"
         :disabled="true"
         format="yyyy 年 MM 月 dd 日"
@@ -140,7 +141,7 @@ export default {
             },
             /* 输入校验规则 */
             rules: {
-                creat_date: [
+                create_date: [
                     { required: true, message: '必须需要创建时间', trigger: 'change' }
                 ],
                 prjname: [

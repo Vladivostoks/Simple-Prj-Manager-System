@@ -5,6 +5,7 @@
   :show-close="false"
   :visible.sync="dialogFormVisible"
   :before-close="handleClose"
+  :close-on-click-modal="false"
   width="20%">
   <el-form :model="form" ref="form" size="mini" :rules="rules">
     <el-form-item label="用户名" label-width="100px" prop="username">
@@ -181,7 +182,7 @@ export default {
                     axios({
                         url:'/user',
                         method: 'post',
-                        timeout: 1000,
+                        timeout: 5000,
                         responseType: 'json',
                         responseEncoding: 'utf8', 
                         headers: {

@@ -72,28 +72,7 @@
 
 <script>
 import axios from 'axios'
-
-function getCookie(cname)
-{
-    let name = cname + "=";
-    let ca = document.cookie.split(';');
-
-    for(let i=0; i<ca.length; i++) 
-    {
-        let c = ca[i].trim();
-        if (c.indexOf(name)==0) return c.substring(name.length,c.length);
-    }
-    return "";
-}
-
-function date2str(date_input){
-    let date_obj = new Date(date_input);
-    let year = date_obj.getFullYear();
-    let month = date_obj.getMonth() + 1 < 10 ? "0" + (date_obj.getMonth() + 1)
-            : date_obj.getMonth() + 1;
-    let day = date_obj.getDate() < 10 ? "0" + date_obj.getDate() : date_obj.getDate();
-    return (year + "-" + month + "-" + day);
-}
+import {getCookie} from '@/assets/js/common.js'
 
 export default {
     name: 'time_line',
@@ -109,12 +88,7 @@ export default {
             /* 新增栏状态 */
             addStatus:false,
             /* 时间线活动记录 */
-            activities_:[{
-                project_status : "danger",
-                progress_content: "项目时间线获取失败",
-                progress_result: "新增项目结果",
-                timestamp: new Date().toString()
-            }],
+            activities_:[],
             rules: {
                 doneContent: [
                     { required: true, message: '请填写实施内容', trigger: 'blur' },
@@ -174,7 +148,7 @@ export default {
                         data.timestamp = new Date().getTime();
                         data.progress_content = this.form.doneContent;
                         data.progress_result = this.form.resultContent;
-                        data.percent = 10;//#TODO
+                        data.percent = this.form.percent;
                         console.dir(this.project_status)
                         data.project_status = (this.project_status == "error"?"danger":this.project_status);
                         data.author = getCookie("username");
@@ -182,7 +156,7 @@ export default {
                         axios({
                             url:'/affair/'+self.project_uuid,
                             method: 'post',
-                            timeout: 1000,
+                            timeout: 5000,
                             responseType: 'json',
                             responseEncoding: 'utf8', 
                             headers: {
@@ -193,12 +167,16 @@ export default {
                             if(res.data.message == "插入成功") 
                             {
                                 data.timestamp = new Date(data.timestamp).toString();
+                                data.index_num = res.data.index_num;
                                 self.activities_.unshift(data);
                                 self.closeEdit();
                                 self.$message({
                                     type: 'success',
                                     message: '添加时间线成功!'
                                 });
+
+                                //弹出当前更新百分比
+                                this.$emit("timeline-submit",self.project_uuid,data.percent);
                             }
                         }).catch((res)=>{
                             //Do nothing
@@ -232,7 +210,7 @@ export default {
                 axios({
                     url:'/affair/'+self.project_uuid,
                     method: 'delete',
-                    timeout: 1000,
+                    timeout: 5000,
                     responseType: 'json',
                     responseEncoding: 'utf8', 
                     headers: {
@@ -247,6 +225,8 @@ export default {
                             type: 'success',
                             message: '删除成功!'
                         });
+                        //弹出当前更新百分比
+                        this.$emit("timeline-submit",self.project_uuid,self.activities_[0].percent);
                     }
                 }).catch((res)=>{
                     //Do nothing
@@ -267,7 +247,7 @@ export default {
         axios({
             url:'/affair/'+self.project_uuid,
             method: 'get',
-            timeout: 1000,
+            timeout: 5000,
             responseType: 'json',
             responseEncoding: 'utf8', 
             params: req
