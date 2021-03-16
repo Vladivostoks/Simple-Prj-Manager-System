@@ -5,6 +5,7 @@
     type="info"
     placement="top"
     icon="el-icon-plus"
+    v-if="isEditable"
     :timestamp="new Date().toString()">
     <el-form v-if="addStatus" :rules="rules" ref="contentform" :model="form" label-width="80px">
         <el-form-item label="实施内容" prop="doneContent">
@@ -62,6 +63,7 @@
             </div>
         </el-card>
         <el-button
+            v-if="isEditable && index==0"
             size="mini"
             type="danger"
             icon="el-icon-delete"
@@ -114,6 +116,12 @@ export default {
         project_status: {
             type: String,
             default: "success"
+        },
+        /* 是否可编辑时间线 */
+        isEditable:{
+            type: Boolean,
+            default: true
+
         }
     },
     computed: {},
@@ -121,7 +129,10 @@ export default {
         addStatus: function(newVal, oldVal) {
             if(newVal)
             {
-                this.form.percent = this.activities_[0].percent;
+                if(this.activities_.length>0)
+                {
+                    this.form.percent = this.activities_[0].percent;
+                }
             }
         }
     },
@@ -138,7 +149,6 @@ export default {
             if(this.addStatus)
             {
                 this.$refs[formValue].validate((valid) => {
-                    console.dir(valid);
                     if (valid)
                     {
                         let data={};
@@ -149,7 +159,6 @@ export default {
                         data.progress_content = this.form.doneContent;
                         data.progress_result = this.form.resultContent;
                         data.percent = this.form.percent;
-                        console.dir(this.project_status)
                         data.project_status = (this.project_status == "error"?"danger":this.project_status);
                         data.author = getCookie("username");
 
@@ -226,7 +235,8 @@ export default {
                             message: '删除成功!'
                         });
                         //弹出当前更新百分比
-                        this.$emit("timeline-submit",self.project_uuid,self.activities_[0].percent);
+                        this.$emit("timeline-submit",self.project_uuid,
+                                                     self.activities_.length>0?self.activities_[0].percent:0);
                     }
                 }).catch((res)=>{
                     //Do nothing
@@ -252,7 +262,22 @@ export default {
             responseEncoding: 'utf8', 
             params: req
         }).then((res) => {
-            self.activities_ = res.data;
+            if(res.data.length > 0 || self.isEditable == true)
+            {
+                self.activities_ = res.data;
+            }
+            else
+            {
+                self.activities_ = [{
+                                        timestamp:new Date(),
+                                        author:getCookie("username"),
+                                        percent:0,
+                                        project_status:"danger",
+                                        progress_content:"暂无项目执行记录",
+                                        progress_result:"暂无项目结果记录"
+                                    }];
+            }
+
             for(let i in self.activities_)
             {
                 self.activities_[i].timestamp = new Date(self.activities_[i].timestamp).toString();
@@ -260,7 +285,14 @@ export default {
         }).catch((err) => {
             //default do nothing
             console.dir(err);
-            self.activities_ = self.activities;
+            self.activities_ = [{
+                                    timestamp:new Date().toString(),
+                                    author:getCookie("username"),
+                                    percent:0,
+                                    project_status:"danger",
+                                    progress_content:"获取项目执行记录失败",
+                                    progress_result:"获取暂无项目结果记录失败"
+                                }];
         });
     },
     mounted() {},

@@ -12,7 +12,7 @@
         type="date"
         :disabled="true"
         format="yyyy 年 MM 月 dd 日"
-        value-format="yyyy-MM-dd"
+        value-format="timestamp"
         placeholder="选择日期">
         </el-date-picker>
     </el-form-item>
@@ -25,6 +25,17 @@
       <el-input v-model="form.region"
                 placeholder="输入项目归属区域"
                 autocomplete="off"></el-input>
+    </el-form-item>
+    <el-form-item label="产品型号" label-width="120px" prop="prjmodel">
+        <el-select
+            v-model="form.prjmodel"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            style="width:100%"
+            placeholder="选择产品型号">
+        </el-select>
     </el-form-item>
     <el-form-item label="项目类型" label-width="120px" prop="prjtype">
         <el-select
@@ -64,7 +75,7 @@
     </el-form-item>
     <el-form-item label="执行进度/状态" label-width="120px">
         <el-col :span="18">
-            <el-slider v-model="form.percent" @change="percentChange(form.percent)"></el-slider>
+            <el-slider :disabled="true" v-model="form.percent" @change="percentChange(form.percent)"></el-slider>
         </el-col>
         <el-col :span="6">
             <el-select @change=statusChange v-model="form.status" placeholder="选择状态">
@@ -115,6 +126,7 @@ export default {
     name: 'item_edit',
     data() {
         var statusCheck = (rule, value, callback) => {
+            
             if(['已完成','执行中','已暂停', '已终止'].indexOf(value) !== -1)
             {
                 //correct
@@ -193,10 +205,11 @@ export default {
     methods: {
         statusChange()
         {
+            /*
             if(this.form.status == "已完成")
             {
                 this.form.percent = 100;
-            }
+            }*/
         },
         percentChange(percent){
             if(percent == 100)

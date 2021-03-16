@@ -99,10 +99,10 @@ class Affairs(Resource):
     def get(self):
         put_parser = reqparse.RequestParser()
         put_parser.add_argument('start_time', dest='start_time',
-                                 type=str, location='args',
+                                 type=int, location='args',
                                  required=True, help='Need input start time for affair list.')
         put_parser.add_argument('end_time', dest='end_time',
-                                 type=str, location='args',
+                                 type=int, location='args',
                                  required=True, help='Need input end time for affair list.')
         put_parser.add_argument('iscomplete', dest='iscomplete',
                                  type=str, location='args',
@@ -111,10 +111,10 @@ class Affairs(Resource):
                                  type=str, location='args',
                                  required=False)
         put_parser.add_argument('userprop', dest='userprop',
-                                 type=str, location='args',
+                                 type=str, location='cookies',
                                  required=False)
         put_parser.add_argument('username', dest='username',
-                                 type=str, location='args',
+                                 type=str, location='cookies',
                                  required=False)
         req = put_parser.parse_args()
 
@@ -136,16 +136,17 @@ class Affairs(Resource):
                         # 超过一周没更新，执行任务状态设置为暂停
                         affair["status"] = "暂停中" 
                 else:
-                    if affair["status"]!="已完成":
+                    if affair["status"]!="已完成" and affair["status"]!="已终止":
                         # 超过一周没更新，执行任务状态设置为暂停
                         affair["status"] = "执行中" 
-                #新增进度
-                affair["percent"] = timeline['percent']
+                        affair["percent"] = timeline['percent']
+                    else:
+                        affair["percent"] = 100
             else:
                 if (time.time()-affair["create_date"]) > 7*24*60*60 and affair["status"]=="执行中":
                     affair["status"] = "暂停中" 
                 affair["percent"] = 0
-            affair["create_date"] = time.strftime("%Y-%m-%d", time.localtime(affair["create_date"]))
+            #affair["create_date"] = time.strftime("%Y-%m-%d", time.localtime(affair["create_date"]))
 
         return ret
 
@@ -175,8 +176,8 @@ class Affairs(Resource):
                                 type=str, location='json',
                                 required=False)
         put_parser.add_argument('create_date', dest='createdate',
-                                type=str, location='json',
-                                required=False)
+                                type=int, location='json',
+                                required=True, help='Need input region for creating timestamp.')
         put_parser.add_argument('region', dest='region',
                                 type=str, location='json',
                                 required=True, help='Need input region for creating affair.')

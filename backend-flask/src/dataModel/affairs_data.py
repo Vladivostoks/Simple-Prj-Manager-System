@@ -327,12 +327,9 @@ class AffairList(object):
                    relateitemid):
         try:
             cursor = self.__db.cursor()
-            if not createdate:
+            #if not createdate:
                 # 直接拿时间戳
-                createdate = int(time.time())
-            else:
-                # 外部时间字符串转时间戳
-                createdate = int(time.mktime(time.strptime(createdate, "%Y-%m-%d")))
+                # createdate = int(time.time())
 
             if not id:
                 id = str(uuid.uuid4())
@@ -350,7 +347,7 @@ class AffairList(object):
                                                  "dutyperson": ','.join(dutyperson),
                                                  "relateperson": ','.join(relateperson),
                                                  "relateitemid": relateitemid,
-                                                 "lasteupdate_date":int(time.time())})
+                                                 "lasteupdate_date":int(time.time()*1000)})
             cursor.close()
             self.__db.commit()
 
@@ -399,10 +396,9 @@ class AffairList(object):
             if other_param["username"] and other_param["userprop"] == "normalizer": 
                 # sql注入? 待测试
                 sql = sql + f""" and duty_persons LIKE "{other_param['username']}" """
-
             cursor.execute(sql % {"affair_list_table":self.__table_name,
-                                  "start_time":time.mktime(time.strptime(start_time, "%Y-%m-%d")),
-                                  "end_time":time.mktime(time.strptime(end_time, "%Y-%m-%d"))})
+                                  "start_time":start_time,
+                                  "end_time":end_time})
             result = cursor.fetchall()
             cursor.close()
 

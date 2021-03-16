@@ -124,6 +124,13 @@ export default {
             }).catch(function failed(error){
                 alert(error.message);
                 console.dir(error);
+                setCookie("username",self.username,1);
+                setCookie("userprop",value,1);
+
+                self.$router.push({
+                                    path: '/mainPage',
+                                    params:{ user_prop: value }
+                                  });
             });
         }
     },

@@ -16,10 +16,11 @@
         </el-col>
         <el-col :span="10"
                 class="timerange"
-                v-if="table_status=='create'">
+                v-show="table_status=='create'">
             <el-date-picker v-model="weekRange"
                             type="week"
                             disabled
+                            value-format="timestamp"
                             format="yyyy 第 WW 周"
                             placeholder="选择周">
             </el-date-picker>
@@ -30,21 +31,21 @@
         </el-col>
         <el-col :span="10"
                 class="timerange"
-                v-if="table_status=='complete'">
+                v-show="table_status=='complete'">
             <el-switch  style="display: block;padding: 20px"
                         active-text="最后更新时间"
                         inactive-text="创建时间"
-                        @change="rangeTypeChange()"
-                        v-model="isUpdateTime">
+                        v-model="week_switch"
+                        @change="rangeTypeChange()">
             </el-switch>
-            <el-date-picker v-if="isUpdateTime"
+            <el-date-picker v-show="isUpdateTime"
                             v-model="weekRange"
                             @change="timeRangeChange()"
                             type="week"
                             format="自yyyy 第 WW 周"
                             placeholder="选择周">
             </el-date-picker>
-            <el-date-picker v-else
+            <el-date-picker v-show="!isUpdateTime"
                             v-model="weekRange"
                             type="daterange"
                             @change="timeRangeChange()"
@@ -57,7 +58,7 @@
             <el-button
                 size="mini"
                 type="success"
-                @click="exportItem()">导出当前记录</el-button>
+                @click="easyExport()">导出当前记录</el-button>
             <el-button
                 size="mini"
                 type="primary"
@@ -69,6 +70,7 @@
     </el-header>
     <el-main>
         <el-table
+            ref="show_data"
             :data="tableData"
             height="100%"
             :key="tableKey"
@@ -83,6 +85,7 @@
                 <template slot-scope="scope">
                     <self-timeline 
                     @timeline-submit="timelineSubmit"
+                    :isEditable="table_status!='complete'"
                     :project_uuid="scope.row.uuid"
                     :project_status="getSchemeType(scope.$index,scope.row)"
                     :project_index="scope.row.uuid">
@@ -90,7 +93,7 @@
                 </template>
             </el-table-column>
             <el-table-column
-                min-width="3%"
+                min-width="1%"
                 type="index"
                 >
             </el-table-column>
@@ -98,6 +101,9 @@
                 prop="create_date"
                 min-width="6%"
                 label="创建日期">
+                <template slot-scope="scope">
+                {{ date2str(new Date(scope.row.create_date)) }}
+                </template>
             </el-table-column>
             <el-table-column
                 prop="region"
@@ -107,12 +113,28 @@
                 label="区域">
             </el-table-column>
             <el-table-column
+                prop="prjmodel"
+                min-width="5%"
+                label="产品型号">
+                <template slot-scope="scope">
+                    <el-tag 
+                    disable-transitions
+                    type="info"
+                    size="small"
+                    style="margin: 1px;"
+                    v-for="item in scope.row.prjmodel"
+                    :key="item">
+                        {{ item }}
+                    </el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column
                 prop="prjname"
-                min-width="8%"
+                min-width="10%"
                 label="项目名称">
             </el-table-column>
             <el-table-column
-                min-width="5%"
+                min-width="7%"
                 prop="prjtype"
                 :filters="typeOpt"
                 :filter-method="tableFilter"
@@ -143,8 +165,9 @@
                 label="svn/git地址">
             </el-table-column>
             <el-table-column
+                prop="period"
                 min-width="8%"
-                label="已执行/预计时间(周)">
+                label="已执行/预计时间">
                 <template slot-scope="scope">
                     <el-alert
                     :description="getSchemeStr(scope.$index, scope.row)"
@@ -156,7 +179,7 @@
                 </template>
             </el-table-column>
             <el-table-column
-                min-width="10%"
+                min-width="8%"
                 prop="status"
                 :filters="statusOpt"
                 :filter-method="tableFilter"
@@ -169,7 +192,7 @@
                 </template>
             </el-table-column>
             <el-table-column
-                min-width="14%"
+                min-width="8%"
                 prop="duty_persons"
                 :filters="personOpt"
                 :filter-method="tableFilter"
@@ -204,7 +227,7 @@
                 </template>
             </el-table-column>
             <el-table-column 
-                min-width="9%"
+                min-width="10%"
                 align="right">
                 <template slot="header" slot-scope="scope">
                     <el-input
@@ -244,21 +267,56 @@
 </template>
 
 <script>
+import XLSX from 'xlsx'
+import XLSXStyle from 'xlsx-style'
+import path from 'path'
+import { saveAs } from 'file-saver'
 import axios from 'axios'
 import item_edit from '@/components/itemboard/dialog'
 import time_line from '@/components/itemboard/timeline'
 import process_line from '@/components/itemboard/progressline'
-import {getCookie,creatUuid,date2str} from '@/assets/js/common.js'
+import {getCookie,creatUuid} from '@/assets/js/common.js'
+import { exportExcel } from '@/assets/js/exportExcel.js'
 
+/**
+ * worksheet转成ArrayBuffer
+ * @param {worksheet} s xlsx库中的worksheet
+ * @returns {ArrayBuffer}
+ */
+function s2ab(s) {
+    if (typeof ArrayBuffer !== 'undefined') {
+        const buf = new ArrayBuffer(s.length)
+        const view = new Uint8Array(buf)
+        for (let i = 0; i !== s.length; ++i) {
+        view[i] = s.charCodeAt(i) & 0xFF
+        }
+        return buf
+    } else {
+        const buf = new Array(s.length)
+        for (let i = 0; i !== s.length; ++i) {
+        buf[i] = s.charCodeAt(i) & 0xFF
+        }
+        return buf
+    }
+}
 
-/*获取当前生效时间段*/
+/**
+ * 获取当前生效时间段
+ * @param {Array} data_range timestamp array with size2 
+ * @return {Object} 起始时间结束时间对
+ */
 function getTimeRange(data_range)
 {
     let ret = new Object();
 
     //时间范围
-    ret.start_time = date2str(data_range[0]);
-    ret.end_time = date2str(data_range[1]);
+    //ret.start_time = date2str(data_range[0]);
+    //ret.end_time = date2str(data_range[1]);
+    console.dir(new Date(data_range[0]))
+    console.dir(new Date(data_range[1]))
+
+    ret.start_time = data_range[0];
+    ret.end_time = data_range[1];
 
     return ret;
 }
@@ -271,7 +329,9 @@ export default {
             loading: false,
             /* 当前列表展示时间 */
             weekRange: new Date(),
-            isUpdateTime: false,
+            /* 开关状态显示 */
+            week_switch: true,
+            isUpdateTime: true,
             /* 通知 */
             notifyPromise:Promise.resolve(),
             /* 修改此变量来更新表格 */
@@ -285,9 +345,10 @@ export default {
             /*当前展示当前表单类型 默认为本周新增*/
             table_status:"create",
             /*展示列表*/
-            tableData:[/*{
+            tableData:[{
                 uuid: '2e0e322a-503a-47fd-b28b-3a1202b55502',
                 create_date: '2021-02-19',
+                prjmodel: [],
                 prjname: 'xx区域xx项目',
                 brief: '客户反馈xx问题/客户新增xx需求',
                 region: '西安',
@@ -296,7 +357,7 @@ export default {
                 status: '执行中',
                 relate_persons: ['Ayden.Shu'],
                 duty_persons: ['Ayden.Shu',"shuzhengyang"]
-            }*/]
+            }]
         }
     },
     props: {},
@@ -448,6 +509,15 @@ export default {
     },
     watch: {},
     methods: {
+        //创建时间展示
+        date2str(date_input){
+            let date_obj = new Date(date_input);
+            let year = date_obj.getFullYear();
+            let month = date_obj.getMonth() + 1 < 10 ? "0" + (date_obj.getMonth() + 1)
+                    : date_obj.getMonth() + 1;
+            let day = date_obj.getDate() < 10 ? "0" + date_obj.getDate() : date_obj.getDate();
+            return (year + "-" + month + "-" + day);
+        },
         headStyle({row, column, rowIndex, columnIndex}){
             return {height: "20px",background: "#303133"};
         },
@@ -489,7 +559,7 @@ export default {
             {
                 return "error"
             }
-            else if(week >= (row.period-1))
+            else if(week >= row.period)
             {
                 return "warning"
             }
@@ -517,28 +587,29 @@ export default {
         /* 时间选择创建时间还是最后更新时间 */
         rangeTypeChange(){
             //值变化且原来是数组
-            if(this.isUpdateTime)
+            if(!this.isUpdateTime)
             {
                 this.weekRange = this.weekRange[0];
             }
             else
             {
-                let now = new Date(this.weekRange);//当前日期
-                let nowDayOfWeek = now.getDay(); //今天本周的第几天
-                let nowDay = now.getDate(); //当前日
-                let nowMonth = now.getMonth(); //当前月
-                let nowYear = now.getFullYear(); //当前年
+                let date = new Date(this.weekRange);//当前日期
+                let nowDayOfWeek = date.getDay(); //今天本周的第几天
+                let nowDay = date.getDate(); //当前日
+                let nowMonth = date.getMonth(); //当前月
+                let nowYear = date.getFullYear(); //当前年
 
                 this.weekRange = new Array();
                 this.weekRange[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
                 this.weekRange[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek));
             }
+            this.isUpdateTime = !this.isUpdateTime;
         },
         /* 时间选择器产生变化,需要更新表单 */
         timeRangeChange(){
-            let time_range=new Array();
+            let time_range = new Array();
+            let self = this;
 
-            console.dir(this.weekRange);
             if(!this.isUpdateTime)
             {
                 /* 重新触发检索过程 */
@@ -546,33 +617,36 @@ export default {
             }
             else
             {
-                let nowDayOfWeek = this.weekRange.getDay(); //今天本周的第几天
-                let nowDay = this.weekRange.getDate(); //当前日
-                let nowMonth = this.weekRange.getMonth(); //当前月
-                let nowYear = this.weekRange.getFullYear(); //当前年
+                let date = new Date(this.weekRange);
+                let nowDayOfWeek = date.getDay(); //今天本周的第几天
+                let nowDay = date.getDate(); //当前日
+                let nowMonth = date.getMonth(); //当前月
+                let nowYear = date.getFullYear(); //当前年
 
-                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek-7);
-                time_range[1] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek-1);
+                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
+                time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek));
             }
             
+            for(let i in time_range)
+            {
+                time_range[i] = time_range[i].getTime();
+            }
+
             /* 重新触发检索过程 */
-            this.affairGet(getTimeRange(time_range),this.table_status);
+            this.loading = true;
+            this.affairGet(getTimeRange(time_range),this.table_status,this.isUpdateTime).then((data)=>{
+                self.loading = false;
+                self.tableData = data;
+            });
         },
         /* 时间线更新 */
         timelineSubmit(uuid,percent){
-            console.dir("timeline of "+uuid+" update:"+percent);
             // 联动项目更新
             for(let i=0; i<this.tableData.length; i++) 
             {
-                console.dir(this.tableData[i].uuid)
-                console.dir(this.tableData[i].uuid==uuid)
                 if(this.tableData[i].uuid == uuid)
                 {
                     this.tableData[i].percent = percent;
-                    if(this.tableData[i].percent==100)
-                    {
-                        this.tableData[i].status="已完成";
-                    }
                     this.affairPut(this.tableData[i]).then(()=>{
                         //更新数据显示
                         this.tableKey = Math.random();
@@ -597,30 +671,23 @@ export default {
                 let nowMonth = now.getMonth(); //当前月
                 let nowYear = now.getFullYear(); //当前年
 
-                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
-                time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek));
-                console.dir(time_range[0].toString())
-                console.dir(time_range[1].toString())
+                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
+                time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
             }
             else if(index === "incomplete")
             {
                 // 时间跨度为本周前未完成
-                time_range[0] = new Date(1970, 1, 1);
+                time_range[0] = new Date(1970, 1, 1).getTime();
 
                 let now = new Date();//当前日期
-                let nowDayOfWeek = now.getDay(); //今天本周的第几天
-                let nowDay = now.getDate(); //当前日
-                let nowMonth = now.getMonth(); //当前月
-                let nowYear = now.getFullYear(); //当前年
 
-                time_range[1] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
-                console.dir(time_range[0].toString())
-                console.dir(time_range[1].toString())
+                time_range[1] = now.getTime();
             }
             else if(index === "complete")
             {
-                // 默认为最后更新时间,会去修改weekRange
+                // 默认为最后更新时间为检索条件
                 this.isUpdateTime = true;
+                this.week_switch = true;
 
                 // 默认时间为上周完成的
                 let now = new Date();//当前日期
@@ -629,16 +696,17 @@ export default {
                 let nowMonth = now.getMonth(); //当前月
                 let nowYear = now.getFullYear(); //当前年
 
-                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek-6);
-                time_range[1] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
-                console.dir(time_range[0].toString())
-                console.dir(time_range[1].toString())
+                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
+                time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
             }
             /* week设置为一周最后周日时间 */
-            this.weekRange = time_range[1];
+            this.weekRange = new Date(time_range[0]);
             
             /* 重新触发检索过程 */
-            this.affairGet(getTimeRange(time_range),index).then((res)=>{
+            this.loading = true;
+            this.affairGet(getTimeRange(time_range),index,this.isUpdateTime).then((data)=>{
+                self.loading = false;
+                self.tableData = data;
                 /* 生成提示信息 */
                 for(let index in self.tableData)
                 {
@@ -664,7 +732,7 @@ export default {
                             message: `项目<${data.prjname}> 已经超过规划时间，请及时处理`
                         });
                     }
-                    else if(week >= (data.period-1))
+                    else if(week >= data.period)
                     {
                         //弹框提示
                         this.notify({
@@ -680,9 +748,8 @@ export default {
             });
         },
         /* 触发表单更新 */
-        affairGet(data_range,table_status){
+        affairGet(data_range,table_status,isUpdateTime){
             //触发检索
-            let self = this;
             let req = data_range;
 
             if(table_status === "incomplete")
@@ -692,13 +759,8 @@ export default {
             else if(table_status === "complete")
             {
                 req.iscomplete = true;
-                req.isupdatetime = this.isUpdateTime;
+                req.isupdatetime = isUpdateTime;
             }
-
-            req.username = getCookie("username");
-            req.userprop = getCookie("userprop");
-
-            this.loading = true;
 
             return new Promise(function (resolve, reject) {
                 axios({
@@ -709,9 +771,7 @@ export default {
                     responseEncoding: 'utf8', 
                     params: req
                 }).then((res) => {
-                    self.tableData = res.data;
-                    self.loading = false;
-                    resolve();
+                    resolve(res.data);
                 }).catch((error)=>{
                     reject(error);
                 }); 
@@ -724,6 +784,7 @@ export default {
         /* 对话框提交事件 */
         dialogSubmit(new_data,uuid)
         {
+            console.dir(new_data.create_date);
             //编辑数据更新
             this.affairPut(new_data).then((res)=>{
                 if(res)
@@ -745,7 +806,6 @@ export default {
                     {
                         //生成uuid
                         new_data.uuid = creatUuid();
-                        console.dir(new_data);
                         //新增
                         this.tableData.unshift(new_data);
                         this.$message.success('新增记录成功!');
@@ -772,7 +832,7 @@ export default {
             /*无索引*/
             this.editIndex = -1;
             this.editDefault = {
-                create_date: date2str(new Date()),
+                create_date: new Date().getTime(),
                 prjname: '',
                 prjtype: [],
                 brief: '',
@@ -866,9 +926,168 @@ export default {
                 }); 
             });
         },
-        /* 导出当前记录 */
-        exportItem(){
-            alert("todo 导出");
+        /* 导出当前页的记录 */
+        curpageExport(){
+        },
+        /* 一键导出当前记录 */
+        async easyExport(){
+            let columns = new Object();
+
+            for(let i in this.$refs.show_data.$slots.default)
+            {
+                if(this.$refs.show_data.$slots.default[i].componentOptions
+                    && this.$refs.show_data.$slots.default[i].componentOptions.propsData.prop)
+                {
+                    let item = this.$refs.show_data.$slots.default[i].componentOptions.propsData;
+
+                    //使用表格里的label和name生成columns,并和tableData对应
+                    columns[item.prop]=new Object();
+                    columns[item.prop].name = item.label;
+                    switch (item.prop)
+                    {
+                        case 'brief': columns[item.prop].wpx = 160; break;
+                        case 'prjname': columns[item.prop].wpx = 140; break;
+                        default: columns[item.prop].wpx = 90; break;
+                    }
+                }
+            }
+
+            var weekCount = function(){
+                let curDate = new Date();
+                let date = new Date();
+                // 设置本年的第一天
+                date.setMonth(0);
+                date.setDate(1);
+                let dateGap = curDate.getTime() - date.getTime();
+                return Math.ceil(dateGap /(7*24*60*60*1000));
+            }
+
+            let filename = "第"+weekCount()+"周周报.xlsx";
+
+            let sheet_table = ['create','complete','incomplete'];
+            let head_style= {
+                                fill: {
+                                    fgColor: { rgb: 'FFA3F4B1' }
+                                },
+                                font: {
+                                    name: '宋体',
+                                    sz: 12,
+                                    bold: true
+                                },
+                                border: {
+                                    bottom: {
+                                    style: 'thin',
+                                    color: 'FF000000'
+                                    }
+                                }
+                            };
+            let workbook = XLSX.utils.book_new();
+            let bookType = null;
+            let ext = path.extname(filename);
+            if (ext == null)
+            {
+                filename += '.xlsx';
+                bookType = 'xlsx';
+            }
+            else
+            {
+                bookType = ext.substr(1).toLowerCase();
+            }
+
+            //按照三个表生成
+            for(const i in sheet_table)
+            {
+                let self = this;
+                let time_range = new Array(2);
+                let is_updatetime = false;
+                let sheetname = "本周新增"
+                let style_conf = null;
+
+                // 时间生成为当前周的
+                let now = new Date();//当前日期
+                let nowDayOfWeek = now.getDay(); //今天本周的第几天
+                let nowDay = now.getDate(); //当前日
+                let nowMonth = now.getMonth(); //当前月
+                let nowYear = now.getFullYear(); //当前年
+
+                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
+                time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
+
+                //和页面显示获取时间一致
+                if(sheet_table[i] === "create")
+                {
+                    sheetname = "本周新增"
+                    style_conf = null;
+                }
+                else if(sheet_table[i] === "incomplete")
+                {
+                    time_range[0] = new Date(1970, 1, 1).getTime();
+                    time_range[1] = new Date().getTime();
+                    style_conf = null;
+                    sheetname = "未完成"
+                }
+                else if(sheet_table[i] === "complete")
+                {
+                    style_conf = null;
+                    sheetname = "已完成"
+                    is_updatetime = true;
+                }
+
+                await this.affairGet(getTimeRange(time_range),sheet_table[i],is_updatetime).then((data)=>{
+                    if(sheet_table[i] != "create")
+                    {
+                        for(let j=data.length-1;j>=0;j--)
+                        {
+                            //剔除已完成和未完成的本周项目
+                            if(data[j].create_date>new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime())
+                            {
+                                data.splice(j, 1);
+                            }
+                        }
+                    }
+
+                    //完成数据合规
+                    for(const j in data)
+                    {
+                        for(const k in data[j])
+                        {
+                            //时间戳转时间
+                            if(k == "create_date")
+                            {
+                                data[j][k] = self.date2str(data[j][k]);
+                            }
+                            else if(k == "period")
+                            {
+                                data[j][k] = self.getSchemeStr(null,data[j]);
+                            }
+                            else if(k == "status")
+                            {
+                                data[j][k] = data[j][k]+"("+data[j].percent+"%)";
+                            }
+
+                            //数组转字符串
+                            if(Object.prototype.toString.call(data[j][k])=='[object Array]')
+                            {
+                                //转数组为字符串
+                                data[j][k] = data[j][k].toString();
+                            }
+                        }
+                        console.dir(data[j]);
+                    }
+                    workbook.SheetNames.push(sheetname);
+                    workbook.Sheets[sheetname] = exportExcel(data,
+                                                             columns,
+                                                             bookType,
+                                                             head_style,
+                                                             style_conf);
+                }).catch((res)=>{
+                    console.dir(res);
+                });
+            }
+
+            let wbOut = XLSXStyle.write(workbook, { bookType: bookType, bookSST: false, type: 'binary' });
+
+            saveAs(new Blob([s2ab(wbOut)], { type: '' }), filename);
         }
     },
     created() {},
@@ -921,6 +1140,10 @@ export default {
         display:inline-block;
         padding:1px 0 0 0 ;
         height:fit-content;
+    }
+
+    .el-progress--line >>> .el-progress-bar{
+        padding-right: 10px;
     }
 
     .el-table .warning-row {
