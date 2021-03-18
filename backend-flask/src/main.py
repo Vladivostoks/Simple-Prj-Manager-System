@@ -8,6 +8,9 @@ from flask_restful import Api
 from apiRoute.login import *
 from apiRoute.affair import *
 
+from dataModel.model_version import DataVersion
+from dataModel.affairs_data import AffairContent,AffairList
+from dataModel.user_data import UserData
 
 app = Flask(__name__,static_url_path='/static',static_folder='../static')
 api = Api(app)
@@ -33,4 +36,6 @@ api.add_resource(Affairs,'/affair')
 api.add_resource(AffairsContent,'/affair/<string:affair_id>')
 
 if __name__ == '__main__':
-    app.run(debug=True,host='127.0.0.1',port=8080)
+    #update Data Model
+    DataVersion(AffairList(),AffairContent(),UserData())
+    #app.run(debug=True,host='127.0.0.1',port=8080)

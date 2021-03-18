@@ -89,7 +89,7 @@ class ItemList(object):
         self.__db.commit()
 
     def __del__(self):
-        pass
+        self.__db.close()
 
     #增加/修改一条记录
     def add_record(self,

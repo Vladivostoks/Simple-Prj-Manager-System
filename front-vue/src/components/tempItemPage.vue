@@ -1064,6 +1064,10 @@ export default {
                             {
                                 data[j][k] = data[j][k]+"("+data[j].percent+"%)";
                             }
+                            else if(k == "brief")
+                            {
+                                // TODO: 更换简介为本周时间线更新内容
+                            }
 
                             //数组转字符串
                             if(Object.prototype.toString.call(data[j][k])=='[object Array]')

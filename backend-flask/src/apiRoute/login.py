@@ -6,9 +6,6 @@ from flask import Flask,abort
 from flask_restful import reqparse, Resource, reqparse
 from dataModel import user_data
 
-sys.path.append("..")
-from config.backend_conf import CONFIG_DB,USER_TABLE
-
 #用户表锁
 USER_TABLE_LOCK = threading.Lock()
 
@@ -30,13 +27,12 @@ class User(Resource):
     def get(self):
         # 查询是否存在超级用户
         USER_TABLE_LOCK.acquire()
-        ret = user_data.User(CONFIG_DB,USER_TABLE).has_super_user()
+        ret = user_data.UserData().has_super_user()
         USER_TABLE_LOCK.release()
         return {"hasSuperUser": ret}, 200
 
-    #删除一条事务记录
+    #删除用户
     def delete(self):
-        # 增加用户
         put_parser = reqparse.RequestParser()
         put_parser.add_argument('username', dest='username',
                                  type=str, location='json',
@@ -45,7 +41,7 @@ class User(Resource):
         req = put_parser.parse_args()
 
         USER_TABLE_LOCK.acquire()
-        ret = user_data.User(CONFIG_DB,USER_TABLE).user_delete(**req)
+        ret = user_data.UserData().user_delete(**req)
         USER_TABLE_LOCK.release()
 
         if not ret:
@@ -53,9 +49,8 @@ class User(Resource):
         else:
             return '{"message":"删除成功"}', 200
     
-    #完成事务的修改和添加
+    # 增加用户
     def post(self):
-        # 增加用户
         put_parser = reqparse.RequestParser()
         put_parser.add_argument('username', dest='username',
                                  type=str, location='json',
@@ -69,7 +64,7 @@ class User(Resource):
         req = put_parser.parse_args()
 
         USER_TABLE_LOCK.acquire()
-        ret = user_data.User(CONFIG_DB,USER_TABLE).user_add(**req)
+        ret = user_data.UserData().user_add(**req)
         USER_TABLE_LOCK.release()
 
         if not ret:
@@ -91,7 +86,7 @@ class Login(Resource):
 
         # 登陆,校验用户,返回用户特征,加锁
         USER_TABLE_LOCK.acquire()
-        ret,prop = user_data.User(CONFIG_DB,USER_TABLE).user_check(**req)
+        ret,prop = user_data.UserData().user_check(**req)
         USER_TABLE_LOCK.release()
 
         if not ret:

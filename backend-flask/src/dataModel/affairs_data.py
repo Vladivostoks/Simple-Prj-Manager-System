@@ -6,7 +6,9 @@ import time
 import uuid
 
 sys.path.append("..")
+from config.backend_conf import LIST_DATA_DB,AFFAIR_CONTENT_DATA_DB
 from config.backend_conf import AFFAIR_LIST_TABLE,ITEM_LIST_TABLE,AFFAIR_CONTENT_DATA_DB
+from dataModel.model_version import DataModel
 
 def dict_factory(cursor, row):  
     d = {}  
@@ -22,7 +24,7 @@ def dict_factory(cursor, row):
 # 4. 记录时刻的项目是否超期情况 TEXT
 # 5. 当前执行项所处的项目百分比进度 INTEGER
 # 6. 记录人员 TEXT
-class AffairContent(object):
+class AffairContent(DataModel):
     # 构造
     __CREAT_AFFAIRS_CONTENT_TABLE = """CREATE TABLE IF NOT EXISTS '%(affair_id)s'(
                                        index_num        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +60,17 @@ class AffairContent(object):
     # 删除表
     __DELETE_TABLE = 'DROP TABLE "%(affair_id)s";'
 
-    def __init__(self,db_file,affair_id):
+    #获取当前建表sql的版本号
+    def get_version(self,verisons):
+        verisons["affair_version"] = "V1.0.0"
+        return verisons
+
+    # 外部能够访问的更新操作
+    def update(self,local_verisons):
+        #如果更新，需要遍历AFFAIR_CONTENT_DATA_DB中所有表
+        return False,local_verisons
+
+    def __init__(self,affair_id="",db_file=AFFAIR_CONTENT_DATA_DB):
         # 外部打开数据库后将句柄给入,按照affair_id找到表位置
         self.__affair_id = affair_id
 
@@ -79,7 +91,7 @@ class AffairContent(object):
             pprint.pprint(e)
 
     def __del__(self):
-        pass
+        self.__db.close()
 
     #修改一条记录
     def replace_record(self,
@@ -226,11 +238,11 @@ class AffairContent(object):
 # 12. 事务关联项目id(外键)
 # 13. 数据最后更新时间
 
-class AffairList(object):
-## 构造
+class AffairList(DataModel):
+    ## 构造(不需要更新)
     __CREAT_AFFAIRS_LIST_TABLE = """CREATE TABLE IF NOT EXISTS %(affair_list_table)s(
                                     uuid            TEXT PRIMARY KEY,
-                                    create_date      DATETIME NOT NULL,
+                                    create_date     DATETIME NOT NULL,
                                     region          TEXT,
                                     prjname         TEXT NOT NULL,
                                     prjtype         TEXT NOT NULL,
@@ -263,6 +275,7 @@ class AffairList(object):
                                                           region,
                                                           prjname,
                                                           prjtype,
+                                                          prjmodel,
                                                           brief,
                                                           svnurl,
                                                           period,
@@ -276,6 +289,7 @@ class AffairList(object):
                                                           '%(region)s',
                                                           '%(name)s',
                                                           '%(type)s',
+                                                          '%(model)s',
                                                           '%(brief)s',
                                                           '%(svnurl)s',
                                                           '%(period)d',
@@ -289,7 +303,33 @@ class AffairList(object):
     # 删除数据
     __DELETE_AFFAIRS = 'DELETE FROM %(affair_list_table)s WHERE uuid="%(uuid)s"'
 
-    def __init__(self,db_file):
+    #获取当前建表sql的版本号
+    def get_version(self,verisons):
+        verisons["affair_list_version"] = "V1.0.0"
+        return verisons
+
+    # v1.0.1更新操作
+    def __update_V1_0_1(self,local_verisons):
+        ret=False
+        if "V1.0.1">local_verisons:
+            try:
+                cursor = self.__db.cursor()
+                cursor.execute(f"ALTER TABLE {self.__table_name} ADD COLUMN prjmodel TEXT;")
+                cursor.close()
+                self.__db.commit()
+            except Exception as e:
+                pprint.pprint(e)
+            ret=True
+
+        #return __update_V1_0_2(local_verisons)
+        return ret,"V1.0.1"
+
+    # 外部能够访问的更新操作
+    def update(self,local_verisons):
+        ret,local_verisons["affair_list_version"] = self.__update_V1_0_1(local_verisons["affair_list_version"])
+        return ret,local_verisons
+
+    def __init__(self,db_file=LIST_DATA_DB):
         # 外部打开数据库后将句柄给入
         self.__table_name = AFFAIR_LIST_TABLE
         try:
@@ -309,7 +349,7 @@ class AffairList(object):
 
 
     def __del__(self):
-        pass
+        self.__db.close()
     
     #增加/修改一条记录
     def add_record(self,
@@ -318,6 +358,7 @@ class AffairList(object):
                    region,
                    name,
                    type,
+                   model,
                    brief,
                    svnurl,
                    period,
@@ -340,6 +381,7 @@ class AffairList(object):
                                                  "region": region,
                                                  "name": name,
                                                  "type": ','.join(type),
+                                                 "model": ','.join(model),
                                                  "brief": brief,
                                                  "svnurl": svnurl,
                                                  "period": period,
@@ -409,6 +451,9 @@ class AffairList(object):
         for res in result:
             if res["prjtype"]!=None and res["prjtype"]!="":
                 res["prjtype"] = res["prjtype"].split(",")
+            
+            if res["prjmodel"]!=None and res["prjmodel"]!="":
+                res["prjmodel"] = res["prjmodel"].split(",")
 
             if res["duty_persons"]!=None and res["duty_persons"]!="":
                 res["duty_persons"] = res["duty_persons"].split(",")

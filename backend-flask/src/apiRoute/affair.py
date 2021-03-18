@@ -8,9 +8,6 @@ from flask_restful import reqparse, Resource, reqparse
 from dataModel import affairs_data 
 
 
-sys.path.append("..")
-from config.backend_conf import LIST_DATA_DB,AFFAIR_CONTENT_DATA_DB
-
 # 用户表锁
 AFFAIR_CONTENT_DATA_DB_LOCK = threading.Lock()
 LIST_DATA_DB_LOCK = threading.Lock()
@@ -29,7 +26,7 @@ class AffairsContent(Resource):
 
         AFFAIR_CONTENT_DATA_DB_LOCK.acquire()
         # 查询具体事件时间线
-        ret = affairs_data.AffairContent(AFFAIR_CONTENT_DATA_DB,affair_id).search_record(**req)
+        ret = affairs_data.AffairContent(affair_id).search_record(**req)
         AFFAIR_CONTENT_DATA_DB_LOCK.release()
 
         return ret
@@ -44,7 +41,7 @@ class AffairsContent(Resource):
                                 required=True, help='Need input index for delete from affair content.')
         req = put_parser.parse_args()
         # 查询具体事件时间线
-        ret = affairs_data.AffairContent(AFFAIR_CONTENT_DATA_DB,affair_id).delete_record(**req)
+        ret = affairs_data.AffairContent(affair_id).delete_record(**req)
         AFFAIR_CONTENT_DATA_DB_LOCK.release()
 
         if not ret:
@@ -82,10 +79,10 @@ class AffairsContent(Resource):
 
         AFFAIR_CONTENT_DATA_DB_LOCK.acquire()
         if req["index"]:
-            ret = affairs_data.AffairContent(AFFAIR_CONTENT_DATA_DB,affair_id).replace_record(**req)
+            ret = affairs_data.AffairContent(affair_id).replace_record(**req)
         else:
             req.pop("index")
-            ret = affairs_data.AffairContent(AFFAIR_CONTENT_DATA_DB,affair_id).add_record(**req)
+            ret = affairs_data.AffairContent(affair_id).add_record(**req)
         AFFAIR_CONTENT_DATA_DB_LOCK.release()
 
         if not ret:
@@ -120,14 +117,14 @@ class Affairs(Resource):
 
         LIST_DATA_DB_LOCK.acquire()
         # 查询事件列表
-        ret = affairs_data.AffairList(LIST_DATA_DB).search_record(**req)
+        ret = affairs_data.AffairList().search_record(**req)
         LIST_DATA_DB_LOCK.release()
 
         # 查询具体事务,调整部分事件列表中的内容
         for affair in ret:
             AFFAIR_CONTENT_DATA_DB_LOCK.acquire()
             # 查询具体事件时间线
-            timeline = affairs_data.AffairContent(AFFAIR_CONTENT_DATA_DB,affair["uuid"]).search_latest_record()
+            timeline = affairs_data.AffairContent(affair["uuid"]).search_latest_record()
             AFFAIR_CONTENT_DATA_DB_LOCK.release()
 
             if timeline:
@@ -160,7 +157,7 @@ class Affairs(Resource):
                                 required=True, help='Need input uuid for delete from affair list.')
         req = put_parser.parse_args()
         # 查询事件列表
-        ret = affairs_data.AffairList(LIST_DATA_DB).delete_record(**req)
+        ret = affairs_data.AffairList().delete_record(**req)
         LIST_DATA_DB_LOCK.release()
 
         if not ret:
@@ -187,6 +184,9 @@ class Affairs(Resource):
         put_parser.add_argument('prjtype', dest='type',
                                 type=list, location='json',
                                 required=True, help='Need input affair type for creating affair.')
+        put_parser.add_argument('prjmodel', dest='model',
+                                type=list, location='json',
+                                required=False)
         put_parser.add_argument('brief', dest='brief',
                                 type=str, location='json',
                                 required=True, help='Need input brief for creating affair.')
@@ -210,7 +210,7 @@ class Affairs(Resource):
                                 required=False)
         req = put_parser.parse_args()
         LIST_DATA_DB_LOCK.acquire()
-        ret = affairs_data.AffairList(LIST_DATA_DB).add_record(**req)
+        ret = affairs_data.AffairList().add_record(**req)
         LIST_DATA_DB_LOCK.release()
 
         if not ret:

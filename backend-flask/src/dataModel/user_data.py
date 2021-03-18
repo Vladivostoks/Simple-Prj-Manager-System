@@ -1,12 +1,18 @@
 # -*- coding:utf-8 -*- 
+import sys
 import sqlite3
 import pprint
+
+from dataModel.model_version import DataModel
+
+sys.path.append("..")
+from config.backend_conf import CONFIG_DB,USER_TABLE
 
 #用户数据模型:
 #1. 用户名(主键)
 #2. 用户属性
 #3. 用户密码
-class User(object):
+class UserData(DataModel):
     #创建表
     __CREAT_USERTABLE = """CREATE TABLE IF NOT EXISTS %(user_table)s(
                            Name VARCHAR(255) PRIMARY KEY,
@@ -28,9 +34,18 @@ class User(object):
     #删除用户
     __DELETE_USER = 'DELETE FROM %(user_table)s WHERE Name = "%(username)s"'
 
-    def __init__(self,db_file,table_name):
+    #获取当前建表sql的版本号
+    def get_version(self,verisons):
+        verisons["user_version"] = "V1.0.0"
+        return verisons
+
+    # 外部能够访问的更新操作
+    def update(self,local_verisons):
+        return False,local_verisons
+
+    def __init__(self,db_file=CONFIG_DB):
         #句柄由外部传入
-        self.__table_name = table_name
+        self.__table_name = USER_TABLE
 
         try:
             self.__db = sqlite3.connect(db_file)

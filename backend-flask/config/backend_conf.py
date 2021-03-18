@@ -1,6 +1,8 @@
 # 后端服务配置相关参数
 # 配置db的路径,相对执行main.py位置
 CONFIG_DB = "../data/config.db3"
+# 版本控制表名称
+VERSION_TABLE = "version_table"
 # 用户表名称
 USER_TABLE = "user_table"
 # 选项表名称
