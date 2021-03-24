@@ -29,9 +29,11 @@
             </el-button>
         </el-row>
     </div>
-    <user-edit :dialogFormVisible="needCreateSuper"
-               headLable="创建超级用户"
-               v-if="needCreateSuper"
+    <user-edit :dialogFormVisible="user_create"
+               :headLable="edit_label"
+               :value="{'username':username,'user_type': user_prop}"
+               v-if="user_create"
+               @dialog-close="cancelUserEdit"
                @dialog-submit="getResult"></user-edit>
 </el-main>
 </el-container>
@@ -41,16 +43,24 @@
 import axios from 'axios'
 import user_edit from '@/components/itemboard/adduser'
 import CryptoJS from 'crypto-js/crypto-js'
-import {setCookie} from '@/assets/js/common.js'
+import {setCookie,clearCookie} from '@/assets/js/common.js'
 
 export default {
     name: 'Login',
     data() {
         return {
-            needCreateSuper:false,
+            /* 用户创建表单显示 */
+            user_create:false,
+            /* 用户创建表单标题 */
+            edit_label:"修改密码",
+            /* 默认用户属性 */
+            user_prop: "normalizer",
+            /* 登陆用户名 */
             username:null,
-            invalid:true,
-            passwd:""
+            /* 登陆密码 */
+            passwd:"",
+            /* 登陆按键使能 */
+            invalid:true
         }
     },
     props: {},
@@ -72,10 +82,13 @@ export default {
         }
     },
     methods: {
+        cancelUserEdit(){
+            this.user_create=false;
+        },
         getResult(form) {
             this.username = form.username;
             this.passwd = form.newPasswd;
-            this.needCreateSuper=false;
+            this.user_create=false;
             this.$refs.name.focus();
         },
         login() {
@@ -93,18 +106,28 @@ export default {
                     responseType: 'json',
                     responseEncoding: 'utf8', 
                     headers: {
-                            'Content-Type': 'application/json;charset=UTF-8'
+                        'Content-Type': 'application/json;charset=UTF-8'
                     },
                     data:form
                 }).then((res) => {
-                    if(res.data.message != "登陆成功")
+                    if(res.data.ret)
                     {
-                        //密码错误
-                        reject(new Error(res.data.message));
+                        if(res.data.message == "登陆成功")
+                        {
+                            resolve(res.data.user_prop);
+                        }
+                        else if(res.data.message == "无初始化")
+                        {
+                            // 如果没有设置密码，需要弹窗设置密码
+                            self.edit_label="修改密码";
+                            self.user_prop=res.data.user_prop;
+                            self.user_create=true;
+                        }
                     }
                     else
                     {
-                        resolve(res.data.user_prop);
+                        //密码错误
+                        reject(new Error(res.data.message));
                     }
                 }).catch((res)=>{
                     //字段有问题
@@ -116,26 +139,22 @@ export default {
             }).then(function success(value){
                 setCookie("username",self.username,1);
                 setCookie("userprop",value,1);
-
                 self.$router.push({
-                                    path: '/mainPage',
+                                    name: 'mainPage',
                                     params:{ user_prop: value }
                                   });
             }).catch(function failed(error){
-                alert(error.message);
+                self.$message({
+                    type: 'error',
+                    message: error.message,
+                });
                 console.dir(error);
-                setCookie("username",self.username,1);
-                setCookie("userprop",value,1);
-
-                self.$router.push({
-                                    path: '/mainPage',
-                                    params:{ user_prop: value }
-                                  });
             });
         }
     },
     created() {
-        document.cookie=`username=""`;
+        //登陆页面清除cookie
+        clearCookie("username");
     },
     mounted() {
         // check是否有超级用户
@@ -145,19 +164,21 @@ export default {
             timeout: 5000,
             responseType: 'json',
             responseEncoding: 'utf8', 
+            params: {"ischeck_super":true}
         }).then((res) => {
             //没有用户则开启对话框生成超级用户
             if(!res.data.hasSuperUser)
             {
-                this.needCreateSuper=true;
+                this.edit_label="创建超级用户";
+                this.user_create=true;
             }
             else
             {
                 this.$refs.name.focus();
             }
         }).catch((res)=>{
-            //test
-            this.needCreateSuper=true;
+            this.edit_label="创建超级用户";
+            this.user_create=true;
         });
     },
     updated() {},

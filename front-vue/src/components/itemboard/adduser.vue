@@ -14,7 +14,7 @@
                 placeholder="请设置用户名"
                 autocomplete="off"></el-input>
     </el-form-item>
-    <el-form-item v-if="headLable=='修改密码'" label="输入当前密码" label-width="100px" prop="passwd">
+    <el-form-item v-if="headLable=='修改密码' && form.curPasswd" label="输入当前密码" label-width="100px" prop="passwd">
         <el-input v-model="form.curPasswd"
                   show-password
                   placeholder="请输入当前密码"
@@ -34,7 +34,7 @@
     </el-form-item>
     <el-form-item v-if="headLable=='添加用户'" prop="user_type" label="添加用户类型" label-width="100px">
         <el-select
-            v-model="form.userType"
+            v-model="form.user_type"
             style="width:100%"
             placeholder="选择关联人员类型">
                 <el-option label="管理员" value="controller"> </el-option>
@@ -91,7 +91,7 @@ export default {
                 /* 确认密码 */
                 confirm:"",
                 /* 用户类型 */
-                userType:""
+                user_type:""
             },
             /* 输入校验规则 */
             rules: {
@@ -147,7 +147,6 @@ export default {
                 //无root用户情况下，不允许关闭创建窗口
                 return;
             }
-
             this.$emit("dialog-close")
             .then(() => {
                 done();
@@ -164,24 +163,21 @@ export default {
         },
         Confirm(){
             this.$refs['form'].validate((valid) => {
-                let self = this;
-
+                
                 if (valid)
                 {
                     let form = new Object();
 
-                    if(this.headLable=='创建超级用户')
-                    {
-                        form.username = this.form.username;
-                        form.passwd = CryptoJS.SHA256(this.form.newPasswd).toString();
-                        /* 用户类型设置管理员 */
-                        form.prop = "administrators";
-                    }
+                    //修改密码的话需要校验原始密码 TODO
+                    form.username = this.form.username;
+                    form.passwd = CryptoJS.SHA256(this.form.newPasswd).toString();
+                    /* 用户类型设置管理员 */
+                    form.prop = this.value.user_type;
 
                     /* call backend */
                     axios({
                         url:'/user',
-                        method: 'post',
+                        method: 'put',
                         timeout: 5000,
                         responseType: 'json',
                         responseEncoding: 'utf8', 

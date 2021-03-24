@@ -345,7 +345,7 @@ export default {
             /*当前展示当前表单类型 默认为本周新增*/
             table_status:"create",
             /*展示列表*/
-            tableData:[{
+            tableData:[/*{
                 uuid: '2e0e322a-503a-47fd-b28b-3a1202b55502',
                 create_date: '2021-02-19',
                 prjmodel: [],
@@ -357,7 +357,7 @@ export default {
                 status: '执行中',
                 relate_persons: ['Ayden.Shu'],
                 duty_persons: ['Ayden.Shu',"shuzhengyang"]
-            }]
+            }*/]
         }
     },
     props: {},
@@ -521,18 +521,20 @@ export default {
         headStyle({row, column, rowIndex, columnIndex}){
             return {height: "20px",background: "#303133"};
         },
-        /* 按照内容检索字段*/
+        /* 按照内容检索字段 TODO */
         searchViaKeyword(search,scope){
 
         },
-        /*表单状态指示*/
+        /*表单状态指示 TODO */
         tableRowClassName({row, rowIndex}) {
+            /*
             //获取对应数组中项目最后更新时间
             if (rowIndex === 1) {
                 return 'warning-row';
             } else if (rowIndex === 3) {
                 return 'success-row';
             }
+            */
             return '';
         },
         /* 选择过滤器 */

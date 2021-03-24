@@ -14,7 +14,7 @@ def user_prop(prop_str):
     if prop_str not in User.PropType:
         raise ValidationError("{} is not a valid user prop")
     else:
-        return True
+        return prop_str
 
 #用户相关操作
 class User(Resource):
@@ -25,11 +25,30 @@ class User(Resource):
 
     #根据时间范围,获取当前事务列表
     def get(self):
-        # 查询是否存在超级用户
-        USER_TABLE_LOCK.acquire()
-        ret = user_data.UserData().has_super_user()
-        USER_TABLE_LOCK.release()
-        return {"hasSuperUser": ret}, 200
+        put_parser = reqparse.RequestParser()
+        put_parser.add_argument('ischeck_super', dest='ischeck_super',
+                                 type=bool, location='args',
+                                 required=False)
+        req = put_parser.parse_args()
+
+        if req["ischeck_super"]:
+            # 查询是否存在超级用户
+            USER_TABLE_LOCK.acquire()
+            ret = user_data.UserData().has_super_user()
+            USER_TABLE_LOCK.release()
+            return {"hasSuperUser": ret}, 200
+        else:
+            # 查询普通用户
+            USER_TABLE_LOCK.acquire()
+            ret = user_data.UserData().get_user()
+            USER_TABLE_LOCK.release()
+            # 按照密码是否存在修改
+            for user in ret:
+                if user["user_passwd"]:
+                    user["user_passwd"] = True
+                else:
+                    user["user_passwd"] = False
+            return ret, 200
 
     #删除用户
     def delete(self):
@@ -45,12 +64,12 @@ class User(Resource):
         USER_TABLE_LOCK.release()
 
         if not ret:
-            return '{"message":"删除失败,无此用户"}', 200
+            return '{"message":false}', 200
         else:
-            return '{"message":"删除成功"}', 200
+            return '{"message":true}', 200
     
     # 增加用户
-    def post(self):
+    def put(self):
         put_parser = reqparse.RequestParser()
         put_parser.add_argument('username', dest='username',
                                  type=str, location='json',
@@ -64,6 +83,8 @@ class User(Resource):
         req = put_parser.parse_args()
 
         USER_TABLE_LOCK.acquire()
+
+        pprint.pprint(req)
         ret = user_data.UserData().user_add(**req)
         USER_TABLE_LOCK.release()
 
@@ -89,10 +110,12 @@ class Login(Resource):
         ret,prop = user_data.UserData().user_check(**req)
         USER_TABLE_LOCK.release()
 
-        if not ret:
-            return '{"message":"用户密码错误"}',200 
+        if not ret and prop == '':
+            return '{"ret":false,"message":"用户密码错误"}',200 
+        elif not ret and prop != '':
+            return f'{{"ret":true,"message":"无初始化","user_prop":"{prop}"}}',200 
         else:
-            return f'{{"message":"登陆成功","user_prop":"{prop}"}}',200 
+            return f'{{"ret":true,"message":"登陆成功","user_prop":"{prop}"}}',200 
 
 
 #用户管理模块单元测试

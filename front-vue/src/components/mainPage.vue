@@ -9,9 +9,15 @@
                      background-color="#E9EEF3"
                      text-color="#545c64"
                      active-text-color="#0b71df">
-                <el-menu-item index="shortItem"><h1> 事 务 </h1></el-menu-item>
-                <el-menu-item index="baselineItem"><h1> 项 目 </h1></el-menu-item>
-                <el-menu-item index="contrlBroad"><h1> 系 统 </h1></el-menu-item>
+                <el-menu-item index="shortItem">
+                    <div class="el-icon-edit-outline"> 事 务 </div>
+                </el-menu-item>
+                <!--el-menu-item index="baselineItem">
+                    <div class="el-icon-guide"> 项 目 </div>
+                </el-menu-item-->
+                <el-menu-item index="contrlBroad" v-if="user_prop=='administrators'">
+                    <div class="el-icon-setting"> 系 统 </div>
+                </el-menu-item>
             </el-menu>
         </el-col>
         <el-col :span="4" class="exit">
@@ -41,6 +47,7 @@ export default {
   data() {
         return {
             username : getCookie("username"),
+            user_prop : getCookie("userprop"),
             iconName : "el-icon-user-solid",
             plain   : true,
             round   : false,
@@ -48,8 +55,7 @@ export default {
             curPage : "shortItem",
         }
     },
-    props: {
-    },
+    props: {},
     components: {},
     computed: {},
     watch: {},
@@ -94,12 +100,24 @@ export default {
 
     .el-header .guide {
         display:flex;
-        justify-content:left;/*主轴上居中*/
+        justify-content:left;/*主轴上居左*/
         align-items:center;/*侧轴上居中*/
     }
 
     .el-header h1{
         height:8vh;
+    }
+
+    .el-menu-item{
+        width:10vw;
+        display:flex;
+        justify-content:left;/*主轴上居中*/
+        align-items:center;/*侧轴上居中*/
+    }
+
+    .el-menu-item >>> div{
+        font-size: 20px;
+        font-weight:bold;
     }
 
     .el-header .el-col,

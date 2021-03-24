@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 import LoginPage from '@/components/loginPage'
 import mainPage from '@/components/mainPage'
 import tempItemPage from '@/components/tempItemPage'
+import ctrlPage from '@/components/ctrlPage'
 
 Vue.use(VueRouter)
 
@@ -13,13 +14,14 @@ export default new VueRouter({
       component: LoginPage
     },
     {
+      name: 'mainPage',
       path: '/mainPage',
       component: mainPage,
-      props: true,
+      props: (route)=>{return route.params;},
       children: [
-        { path: 'shortItem', component: tempItemPage, props: true },
-        { path: 'baselineItem', component: tempItemPage, props: true },
-        { path: 'contrlBroad', component: tempItemPage, props: true }
+        { path: 'shortItem', component: tempItemPage}, 
+        //{ path: 'baselineItem', component: tempItemPage},
+        { path: 'contrlBroad', component: ctrlPage}
       ]
     }
   ]

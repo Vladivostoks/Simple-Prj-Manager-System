@@ -38,4 +38,4 @@ api.add_resource(AffairsContent,'/affair/<string:affair_id>')
 if __name__ == '__main__':
     #update Data Model
     DataVersion(AffairList(),AffairContent(),UserData())
-    #app.run(debug=True,host='127.0.0.1',port=8080)
+    app.run(debug=True,host='127.0.0.1',port=8080)
