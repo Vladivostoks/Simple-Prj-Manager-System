@@ -1,10 +1,8 @@
 #- * -coding: utf - 8 - * -
-import sys
 import pprint
 import sqlite3
 from abc import abstractmethod, ABCMeta
 
-sys.path.append("..")
 from config.backend_conf import CONFIG_DB,VERSION_TABLE
 
 class DataModel(metaclass=ABCMeta):

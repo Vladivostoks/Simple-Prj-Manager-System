@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*- 
+import os
+import sys
 from pprint import pprint 
 from flask import Flask,abort
 from flask import request
@@ -11,8 +13,14 @@ from apiRoute.affair import *
 from dataModel.model_version import DataVersion
 from dataModel.affairs_data import AffairContent,AffairList
 from dataModel.user_data import UserData
+from config.backend_conf import DATA_DIR
 
-app = Flask(__name__,static_url_path='/static',static_folder='../static')
+#使用pyinstaller打包不能使用相对路径
+if hasattr(sys,'_MEIPASS'):
+    app = Flask(__name__,static_url_path='/static',static_folder=sys._MEIPASS+'/static')
+else:
+    app = Flask(__name__,static_url_path='/static',static_folder='../static')
+
 api = Api(app)
 
 @app.route('/')
@@ -36,6 +44,9 @@ api.add_resource(Affairs,'/affair')
 api.add_resource(AffairsContent,'/affair/<string:affair_id>')
 
 if __name__ == '__main__':
+    #make data dir
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
     #update Data Model
     DataVersion(AffairList(),AffairContent(),UserData())
-    app.run(debug=True,host='127.0.0.1',port=8080)
+    app.run(debug=False,host='0.0.0.0',port=80)

@@ -83,15 +83,13 @@ class User(Resource):
         req = put_parser.parse_args()
 
         USER_TABLE_LOCK.acquire()
-
-        pprint.pprint(req)
         ret = user_data.UserData().user_add(**req)
         USER_TABLE_LOCK.release()
 
         if not ret:
             abort(503)
         else:
-            return "",200
+            return "{'ret':true}",200
 
 #登陆相关操作
 class Login(Resource):

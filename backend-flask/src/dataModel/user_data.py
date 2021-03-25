@@ -1,11 +1,9 @@
 # -*- coding:utf-8 -*- 
-import sys
 import sqlite3
 import pprint
 
 from dataModel.model_version import DataModel
 
-sys.path.append("..")
 from config.backend_conf import CONFIG_DB,USER_TABLE
 from dataModel.affairs_data import dict_factory
 
@@ -33,7 +31,7 @@ class UserData(DataModel):
     #插入/修改用户
     __INSERT_USER = """REPLACE INTO %(user_table)s(user_name,user_prop,user_passwd)
                                     VALUES('%(username)s','%(prop)s','%(passwd)s')
-                     """
+                    """
     #删除用户
     __DELETE_USER = 'DELETE FROM %(user_table)s WHERE user_name = "%(username)s"'
 

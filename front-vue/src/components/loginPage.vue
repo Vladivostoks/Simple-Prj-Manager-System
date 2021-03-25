@@ -170,6 +170,7 @@ export default {
             if(!res.data.hasSuperUser)
             {
                 this.edit_label="创建超级用户";
+                this.user_prop="administrators"
                 this.user_create=true;
             }
             else
@@ -177,8 +178,11 @@ export default {
                 this.$refs.name.focus();
             }
         }).catch((res)=>{
-            this.edit_label="创建超级用户";
-            this.user_create=true;
+            this.$message({
+                type: 'error',
+                message: res
+            });
+            console.dir(res);
         });
     },
     updated() {},

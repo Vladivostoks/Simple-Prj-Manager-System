@@ -1,11 +1,9 @@
 # -*- coding:utf-8 -*- 
-import sys
 import pprint
 import sqlite3
 import time
 import uuid
 
-sys.path.append("..")
 from config.backend_conf import LIST_DATA_DB,AFFAIR_CONTENT_DATA_DB
 from config.backend_conf import AFFAIR_LIST_TABLE,ITEM_LIST_TABLE,AFFAIR_CONTENT_DATA_DB
 from dataModel.model_version import DataModel
