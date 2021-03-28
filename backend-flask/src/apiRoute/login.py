@@ -89,7 +89,7 @@ class User(Resource):
         if not ret:
             abort(503)
         else:
-            return "{'ret':true}",200
+            return {'ret':True},200
 
 #登陆相关操作
 class Login(Resource):
@@ -107,13 +107,13 @@ class Login(Resource):
         USER_TABLE_LOCK.acquire()
         ret,prop = user_data.UserData().user_check(**req)
         USER_TABLE_LOCK.release()
-
+        
         if not ret and prop == '':
-            return '{"ret":false,"message":"用户密码错误"}',200 
+            return {"ret":False,"message":"用户密码错误"},200 
         elif not ret and prop != '':
-            return f'{{"ret":true,"message":"无初始化","user_prop":"{prop}"}}',200 
+            return {"ret":True,"message":"无初始化","user_prop":prop},200 
         else:
-            return f'{{"ret":true,"message":"登陆成功","user_prop":"{prop}"}}',200 
+            return {"ret":True,"message":"登陆成功","user_prop":prop},200 
 
 
 #用户管理模块单元测试

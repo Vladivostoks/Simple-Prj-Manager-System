@@ -74,10 +74,10 @@
         </el-input-number>
     </el-form-item>
     <el-form-item label="执行进度/状态" label-width="120px">
-        <el-col :span="18">
+        <!--el-col :span="18">
             <el-slider :disabled="true" v-model="form.percent" @change="percentChange(form.percent)"></el-slider>
-        </el-col>
-        <el-col :span="6">
+        </el-col-->
+        <el-col :span="24">
             <el-select @change=statusChange v-model="form.status" placeholder="选择状态">
                 <el-option label="已完成" value="已完成"> </el-option>
                 <el-option label="执行中" value="执行中"> </el-option>
@@ -145,7 +145,7 @@ export default {
             /* 项目类型列表 */
             itemTypeList: ['需求新增','问题反馈','TVD','RV_TVD','HEOP'],
             /* 待处理人员列表 */
-            personList:["Ayden.Shu","shuzhengyang"],
+            personList:[],
             /* 输入输出表单 */
             form: {
                 relate_persons:[],

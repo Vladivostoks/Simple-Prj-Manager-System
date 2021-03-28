@@ -401,13 +401,11 @@ class AffairList(DataModel):
     def delete_record(self,id):
         try:
             cursor = self.__db.cursor()
-            pprint.pprint(self.__DELETE_AFFAIRS % {"affair_list_table":self.__table_name,
-                                                    "uuid":id})
             cursor.execute(self.__DELETE_AFFAIRS % {"affair_list_table":self.__table_name,
                                                     "uuid":id})
             cursor.close()
             self.__db.commit()
-            AffairContent(AFFAIR_CONTENT_DATA_DB,id).delete_table()
+            AffairContent(id).delete_table()
         except Exception as e:
             pprint.pprint(e)
             return False

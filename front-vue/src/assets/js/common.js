@@ -47,4 +47,18 @@ function creatUuid() {
     });
 }
 
-export {setCookie,getCookie,clearCookie,creatUuid};
+/**
+ * @description: 创建时间展示
+ * @param {Date} date_input 时间对象
+ * @return {String} 展示字符串
+ */
+function date2shortStr(date_input){
+    let date_obj = new Date(date_input);
+    let year = date_obj.getFullYear();
+    let month = date_obj.getMonth() + 1 < 10 ? "0" + (date_obj.getMonth() + 1)
+            : date_obj.getMonth() + 1;
+    let day = date_obj.getDate() < 10 ? "0" + date_obj.getDate() : date_obj.getDate();
+    return (year + "-" + month + "-" + day);
+}
+
+export {setCookie,getCookie,clearCookie,creatUuid,date2shortStr};

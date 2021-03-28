@@ -137,6 +137,74 @@ export default {
         }
     },
     methods: {
+        /**
+         * @description: 获取规定时间范围内到某个事务到时间线
+         * @param {String} uuid 查询项目uuid
+         * @param {Array} dateRange 起始时间和结束时间Date对象数组 
+         * @return {Promise} 查询动作
+         */
+        getLineContent(uuid,dateRange)
+        {
+            let req = new Object();
+
+            req.start_time = dateRange[0].getTime();
+            req.end_time = dateRange[1].getTime();
+            return new Promise(function (resolve, reject) {
+                axios({
+                    url:'/affair/'+uuid,
+                    method: 'get',
+                    timeout: 5000,
+                    responseType: 'json',
+                    responseEncoding: 'utf8', 
+                    params: req
+                }).then((res) => {
+                    if(res.data.length > 0 || self.isEditable == true)
+                    {
+                        resolve(res.data);
+                    }
+                    else
+                    {
+                        reject("暂无时间线记录");
+                    }
+                }).catch((err) => {
+                    reject(err);
+                });
+            });
+        },
+        /**
+         * @description: 将时间线内容数组转换成一串长字符串
+         * @param {Array} contentData 时间线数组
+         * @param {Array} dateRange 起始时间和结束时间Date对象数组 
+         * @return {String} 时间线文本
+         */
+        line2Text(contentData,DateRange){
+            let text = "";
+            
+            //只取时间范围内到
+            for(let i in contentData)
+            {
+                if(contentData[i].timestamp >= DateRange[0].getTime()
+                    && contentData[i].timestamp < DateRange[1].getTime())
+                {
+                    //合成内容包括实施&结果
+                    text += i+".";
+                    text += contentData[i].progress_content
+                    if(!text.endsWith("\n"))
+                    {
+                        text += "\n";
+                    }
+                    text += contentData[i].progress_result+"("+contentData[i].author+")"
+                    if(i != (contentData.length-1))
+                    {
+                        if(!text.endsWith("\n"))
+                        {
+                            text += "\n";
+                        }
+                    }
+                }
+            }
+            return text;
+        },
         closeEdit(){
             //切换编辑状态
             this.addStatus = !this.addStatus;
@@ -248,44 +316,22 @@ export default {
     },
     created() {
         /* axio 从后台获取具体项目的时间线 */
-        let self = this;
-        let req = new Object();
+        let dateRange = [new Date(1970,1,1),new Date()];
 
-        req.start_time = new Date(1970,1,1).getTime();
-        req.end_time = new Date().getTime();
+        this.getLineContent(this.project_uuid,dateRange).then((data) => {
+            this.activities_ = data;
 
-        axios({
-            url:'/affair/'+self.project_uuid,
-            method: 'get',
-            timeout: 5000,
-            responseType: 'json',
-            responseEncoding: 'utf8', 
-            params: req
-        }).then((res) => {
-            if(res.data.length > 0 || self.isEditable == true)
+            for(let i in this.activities_)
             {
-                self.activities_ = res.data;
-            }
-            else
-            {
-                self.activities_ = [{
-                                        timestamp:new Date(),
-                                        author:getCookie("username"),
-                                        percent:0,
-                                        project_status:"danger",
-                                        progress_content:"暂无项目执行记录",
-                                        progress_result:"暂无项目结果记录"
-                                    }];
-            }
-
-            for(let i in self.activities_)
-            {
-                self.activities_[i].timestamp = new Date(self.activities_[i].timestamp).toString();
+                this.activities_[i].timestamp = new Date(this.activities_[i].timestamp).toString();
             }
         }).catch((err) => {
             //default do nothing
-            console.dir(err);
-            self.activities_ = [{
+            this.$message({
+                type: 'error',
+                message: err
+            });
+            this.activities_ = [{
                                     timestamp:new Date().toString(),
                                     author:getCookie("username"),
                                     percent:0,
@@ -293,6 +339,10 @@ export default {
                                     progress_content:"获取项目执行记录失败",
                                     progress_result:"获取暂无项目结果记录失败"
                                 }];
+            for(let i in this.activities_)
+            {
+                this.activities_[i].timestamp = new Date(this.activities_[i].timestamp).toString();
+            }
         });
     },
     mounted() {},

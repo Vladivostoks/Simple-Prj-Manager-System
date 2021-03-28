@@ -58,31 +58,36 @@
             <el-button
                 size="mini"
                 type="success"
-                @click="easyExport()">导出当前记录</el-button>
+                v-show="table_status=='create'"
+                @click="easyExport()">一键导出</el-button>
             <el-button
                 size="mini"
                 type="primary"
                 v-show="table_status=='create'"
                 @click="creatNewitem()">新建项目记录</el-button>
+            <el-button
+                size="mini"
+                type="success"
+                @click="curpageExport()">导出当前显示项目</el-button>
         </el-col>
         <el-col :span="1"> 
         </el-col>
     </el-header>
     <el-main>
         <el-table
-            ref="show_data"
-            :data="tableData"
+            ref="data_table"
+            :data="show_data"
             height="100%"
             :key="tableKey"
-            :header-cell-style="headStyle"
-            :row-class-name="tableRowClassName"
+            :cell-style="cellStyle"
+            :header-cell-style="headercellStyle"
             v-loading="loading"
             element-loading-text="加载中"
             element-loading-spinner="el-icon-loading"
             element-loading-background="rgba(0, 0, 0, 0.8)"
             style="width: 100%">
             <el-table-column type="expand">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                     <self-timeline 
                     @timeline-submit="timelineSubmit"
                     :isEditable="table_status!='complete'"
@@ -94,14 +99,14 @@
             </el-table-column>
             <el-table-column
                 min-width="1%"
-                type="index"
-                >
+                type="index">
             </el-table-column>
             <el-table-column
                 prop="create_date"
                 min-width="6%"
                 label="创建日期">
-                <template slot-scope="scope">
+                <template v-slot="scope">
+                    <div style="display:none">{{scope.row.uuid}}</div>
                 {{ date2str(new Date(scope.row.create_date)) }}
                 </template>
             </el-table-column>
@@ -116,7 +121,7 @@
                 prop="prjmodel"
                 min-width="5%"
                 label="产品型号">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                     <el-tag 
                     disable-transitions
                     type="info"
@@ -139,7 +144,7 @@
                 :filters="typeOpt"
                 :filter-method="tableFilter"
                 label="项目类型">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                     <el-tag 
                     disable-transitions
                     type="danger"
@@ -155,7 +160,7 @@
                 prop="brief"
                 min-width="17%"
                 label="原始需求/反馈">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                 <pre>{{ scope.row.brief }}</pre>
                 </template>
             </el-table-column>
@@ -168,7 +173,7 @@
                 prop="period"
                 min-width="8%"
                 label="已执行/预计时间">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                     <el-alert
                     :description="getSchemeStr(scope.$index, scope.row)"
                     :closable="false"
@@ -184,7 +189,7 @@
                 :filters="statusOpt"
                 :filter-method="tableFilter"
                 label="执行状态">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                     <self-processline 
                     :percent="scope.row.percent"
                     :status="scope.row.status">
@@ -197,7 +202,7 @@
                 :filters="personOpt"
                 :filter-method="tableFilter"
                 label="当前处理人员">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                     <el-tag 
                     disable-transitions
                     size="small"
@@ -214,7 +219,7 @@
                 :filters="relationOpt"
                 :filter-method="tableFilter"
                 label="关联人员">
-                <template slot-scope="scope">
+                <template v-slot="scope">
                     <el-tag 
                     disable-transitions 
                     type="success"
@@ -229,14 +234,15 @@
             <el-table-column 
                 min-width="10%"
                 align="right">
-                <template slot="header" slot-scope="scope">
-                    <el-input
-                    v-model="search"
-                    size="mini"
-                    @keyup.enter.native="searchViaKeyword(search,scope)"
-                    placeholder="输入关键字搜索"/>
+                <template v-slot:header>
+                    <el-input v-model="search"
+                              size="mini"
+                              style="width:140px;margin-left:10px;"
+                              @keyup.enter.native="filterWithKeyWords(search)"
+                              :filter-method="tableFilter"
+                              placeholder="输入搜索关键字"/>
                 </template>
-                <template slot-scope="scope">
+                <template v-slot:default="scope">
                     <el-button
                     size="mini"
                     :disabled="table_status=='complete'"
@@ -255,12 +261,19 @@
             @dialog-submit="dialogSubmit"
             :editIndex="editIndex"
             :value="editDefault"></item-edit>
+        <export-option v-if="open_export_dialog"
+                       @dialog-close="exportOptSubmit"
+                       @dialog-submit="exportOptSubmit"
+                       :headLable="exportLabel"
+                       :exportAction="exportAction"
+                       :exportOption="exportOption"
+        ></export-option>
     </el-main>
     <el-footer height="40px">
         <el-pagination
          layout="prev, pager, next"
          :page-size="2"
-         :total="tableData.length">
+         :total="show_data.length">
         </el-pagination>
     </el-footer>
 </el-container>
@@ -275,7 +288,8 @@ import axios from 'axios'
 import item_edit from '@/components/itemboard/dialog'
 import time_line from '@/components/itemboard/timeline'
 import process_line from '@/components/itemboard/progressline'
-import {getCookie,creatUuid} from '@/assets/js/common.js'
+import exportOptionForm from '@/components/itemboard/exportForm'
+import {getCookie,creatUuid,date2shortStr} from '@/assets/js/common.js'
 import { exportExcel } from '@/assets/js/exportExcel.js'
 
 /**
@@ -321,6 +335,60 @@ function getTimeRange(data_range)
     return ret;
 }
 
+/**
+ * 递归查询
+ * @param {Array/String/Object} dst_obj 待查询数组或者对象
+ * @param {String} contet 模式串
+ * @return {Boolean} 是否查询到
+ */
+function str_search(dst_obj,content)
+{
+    if(typeof(dst_obj) == "string")
+    {
+        return (dst_obj.search(content) != -1);
+    }
+    else if(typeof(dst_obj) == "object" 
+            || typeof(dst_obj) == "array")
+    {
+        for(let key in dst_obj)
+        {
+            if(str_search(dst_obj[key],content))
+            {
+                return true;
+            }
+        }
+    }
+    else
+    {
+        //不支持的类型,直接跳过
+        return false;
+    }
+}
+
+/**
+ * @description: 
+ * @param {*} index
+ * @param {*} row
+ * @return {*}
+ */
+function getSchemeStrwithDate(period,date){
+    let cur_timestamp = new Date().getTime();
+    let start_timestamp = new Date(date).getTime();
+
+    let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
+
+    if(week<1)
+    {
+        week = 1;
+    }
+    else
+    {
+        week = Math.ceil(week);
+    }
+
+    return `${week}周/${period}周`;
+}
+
 export default {
   name: 'tempItemPage',
   data() {
@@ -344,10 +412,12 @@ export default {
             search: '',
             /*当前展示当前表单类型 默认为本周新增*/
             table_status:"create",
-            /*展示列表*/
-            tableData:[/*{
+            /*缓存列表*/
+            total_data:[],
+            /*显示列表*/
+            show_data:[/*{
                 uuid: '2e0e322a-503a-47fd-b28b-3a1202b55502',
-                create_date: '2021-02-19',
+                create_date: new Date().getTime(),
                 prjmodel: [],
                 prjname: 'xx区域xx项目',
                 brief: '客户反馈xx问题/客户新增xx需求',
@@ -357,14 +427,23 @@ export default {
                 status: '执行中',
                 relate_persons: ['Ayden.Shu'],
                 duty_persons: ['Ayden.Shu',"shuzhengyang"]
-            }*/]
+            }*/],
+            /* 导出对话框 */
+            open_export_dialog:false,
+            /* 导出对话框标题 */
+            exportLabel: "",
+            /* 导出动作(闭包函数) */
+            exportAction: ()=>{},
+            /* 导出选项 */
+            exportOption:[]
         }
     },
     props: {},
     components: {
         "self-timeline":time_line,
         "self-processline":process_line,
-        "item-edit":item_edit
+        "item-edit":item_edit,
+        "export-option":exportOptionForm
     },
     computed: {
         statusOpt(){
@@ -373,11 +452,11 @@ export default {
             let ret = [];
 
             /* 生成当前项目状态集合 */
-            for(index_t in this.tableData)
+            for(index_t in this.show_data)
             {
-                if(this.tableData[index_t].status != null)
+                if(this.show_data[index_t].status != null)
                 {
-                    set.add(this.tableData[index_t].status);
+                    set.add(this.show_data[index_t].status);
                 }
             }
 
@@ -401,11 +480,11 @@ export default {
             let ret = [];
 
             /* 生成当前项目类型集合 */
-            for(index_t in this.tableData)
+            for(index_t in this.show_data)
             {
-                for(index_p in this.tableData[index_t].prjtype)
+                for(index_p in this.show_data[index_t].prjtype)
                 {
-                    set.add(this.tableData[index_t].prjtype[index_p]);
+                    set.add(this.show_data[index_t].prjtype[index_p]);
                 }
             }
 
@@ -429,9 +508,9 @@ export default {
             let ret = [];
 
             /* 生成当前项目区域集合 */
-            for(index_t in this.tableData)
+            for(index_t in this.show_data)
             {
-                set.add(this.tableData[index_t].region);
+                set.add(this.show_data[index_t].region);
             }
 
             let array = Array.from(set);
@@ -455,11 +534,11 @@ export default {
             let ret = [];
 
             /* 生成当前表格执行人员集合 */
-            for(index_t in this.tableData)
+            for(index_t in this.show_data)
             {
-                for(index_p in this.tableData[index_t].duty_persons)
+                for(index_p in this.show_data[index_t].duty_persons)
                 {
-                    set.add(this.tableData[index_t].duty_persons[index_p]);
+                    set.add(this.show_data[index_t].duty_persons[index_p]);
                 }
             }
 
@@ -484,11 +563,11 @@ export default {
             let ret = [];
 
             /* 生成当前表格关联人员集合 */
-            for(index_t in this.tableData)
+            for(index_t in this.show_data)
             {
-                for(index_p in this.tableData[index_t].relate_persons)
+                for(index_p in this.show_data[index_t].relate_persons)
                 {
-                    set.add(this.tableData[index_t].relate_persons[index_p]);
+                    set.add(this.show_data[index_t].relate_persons[index_p]);
                 }
             }
 
@@ -510,32 +589,47 @@ export default {
     watch: {},
     methods: {
         //创建时间展示
-        date2str(date_input){
-            let date_obj = new Date(date_input);
-            let year = date_obj.getFullYear();
-            let month = date_obj.getMonth() + 1 < 10 ? "0" + (date_obj.getMonth() + 1)
-                    : date_obj.getMonth() + 1;
-            let day = date_obj.getDate() < 10 ? "0" + date_obj.getDate() : date_obj.getDate();
-            return (year + "-" + month + "-" + day);
-        },
-        headStyle({row, column, rowIndex, columnIndex}){
+        date2str:date2shortStr,
+        /**
+         * @description: 表头样式
+         * @return {Object} 样式描述
+         */
+        headercellStyle({row, column, rowIndex, columnIndex}){
             return {height: "20px",background: "#303133"};
         },
-        /* 按照内容检索字段 TODO */
-        searchViaKeyword(search,scope){
-
+        /**
+         * @description: 表头样式
+         * @return {Object} 样式描述
+         */
+        cellStyle({row, column, rowIndex, columnIndex}){
+            
         },
-        /*表单状态指示 TODO */
-        tableRowClassName({row, rowIndex}) {
-            /*
-            //获取对应数组中项目最后更新时间
-            if (rowIndex === 1) {
-                return 'warning-row';
-            } else if (rowIndex === 3) {
-                return 'success-row';
+        /* 按照内容只展示检索字段 */
+        filterWithKeyWords(search){
+            console.dir("search:"+search);
+            this.loading = true;
+            if(search !== "")
+            {
+                let show_data=[];
+
+                for(let i in this.total_data)
+                {
+                    if(str_search(this.total_data[i],search))
+                    {
+                        show_data.push(this.total_data[i]);
+                    }
+                }
+
+                this.show_data = show_data;
+                console.dir(this.show_data);
             }
-            */
-            return '';
+            else
+            {
+                this.show_data = this.total_data;
+                console.dir(this.show_data);
+            }
+            this.tableKey = Math.random();
+            this.loading = false;
         },
         /* 选择过滤器 */
         tableFilter(value, row, column){
@@ -570,21 +664,7 @@ export default {
         },
         /* 获取规划字符串 */
         getSchemeStr(index,row){
-            let cur_timestamp = new Date().getTime();
-            let start_timestamp = new Date(row.create_date).getTime();
-
-            let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
-
-            if(week<1)
-            {
-                week = 1;
-            }
-            else
-            {
-                week = Math.ceil(week);
-            }
-
-            return `${week}周/${row.period}周`;
+            return getSchemeStrwithDate(row.period,row.create_date);
         },
         /* 时间选择创建时间还是最后更新时间 */
         rangeTypeChange(){
@@ -638,18 +718,19 @@ export default {
             this.loading = true;
             this.affairGet(getTimeRange(time_range),this.table_status,this.isUpdateTime).then((data)=>{
                 self.loading = false;
-                self.tableData = data;
+                self.total_data = data;
+                self.show_data = self.total_data;
             });
         },
         /* 时间线更新 */
         timelineSubmit(uuid,percent){
             // 联动项目更新
-            for(let i=0; i<this.tableData.length; i++) 
+            for(let i=0; i<this.show_data.length; i++) 
             {
-                if(this.tableData[i].uuid == uuid)
+                if(this.show_data[i].uuid == uuid)
                 {
-                    this.tableData[i].percent = percent;
-                    this.affairPut(this.tableData[i]).then(()=>{
+                    this.show_data[i].percent = percent;
+                    this.affairPut(this.show_data[i]).then(()=>{
                         //更新数据显示
                         this.tableKey = Math.random();
                     });
@@ -708,11 +789,12 @@ export default {
             this.loading = true;
             this.affairGet(getTimeRange(time_range),index,this.isUpdateTime).then((data)=>{
                 self.loading = false;
-                self.tableData = data;
+                self.total_data = data;
+                self.show_data = self.total_data;
                 /* 生成提示信息 */
-                for(let index in self.tableData)
+                for(let index in self.show_data)
                 {
-                    let data = self.tableData[index];
+                    let data = self.show_data[index];
 
                     if(data.status == "已完成" || data.status == "已终止")
                     {
@@ -746,6 +828,7 @@ export default {
                     }
                 }
             }).catch((res)=>{
+                self.loading = false;
                 console.dir(res);
             });
         },
@@ -786,7 +869,12 @@ export default {
         /* 对话框提交事件 */
         dialogSubmit(new_data,uuid)
         {
-            console.dir(new_data.create_date);
+            if(!uuid)
+            {
+                //表单未提供uuid,说明此为新建项目,生成uuid
+                new_data.uuid = creatUuid();
+            }
+
             //编辑数据更新
             this.affairPut(new_data).then((res)=>{
                 if(res)
@@ -794,11 +882,11 @@ export default {
                     if(uuid)
                     {
                         // 修改
-                        for(let i=0; i<this.tableData.length; i++) 
+                        for(let i=0; i<this.show_data.length; i++) 
                         {
-                            if(this.tableData[i].uuid == uuid)
+                            if(this.show_data[i].uuid == uuid)
                             {
-                                this.tableData[i] = new_data;
+                                this.show_data[i] = new_data;
                                 break;
                             }
                         }
@@ -806,10 +894,8 @@ export default {
                     }
                     else
                     {
-                        //生成uuid
-                        new_data.uuid = creatUuid();
                         //新增
-                        this.tableData.unshift(new_data);
+                        this.show_data.unshift(new_data);
                         this.$message.success('新增记录成功!');
                     }
 
@@ -884,11 +970,11 @@ export default {
                             message: `删除成功!`
                         });
 
-                        for(let i=0; i<this.tableData.length; i++) 
+                        for(let i=0; i<this.show_data.length; i++) 
                         {
-                            if(this.tableData[i].uuid == row.uuid)
+                            if(this.show_data[i].uuid == row.uuid)
                             {
-                                this.tableData.splice(i,1);
+                                this.show_data.splice(i,1);
                                 break;
                             }
                         }
@@ -928,19 +1014,194 @@ export default {
                 }); 
             });
         },
+        /**
+         * @description: 导出项目表单提交
+         */
+        exportOptSubmit(){
+            this.open_export_dialog = false;
+        },
+        /**
+         * @description: 生成导出项目
+         * @return {Object} 返回生成的导出选项
+         */
+        createExportOpt(data){
+            let columns = new Object();
+
+            for(let i in this.$refs.data_table.$slots.default)
+            {
+                if(this.$refs.data_table.$slots.default[i].componentOptions
+                    && this.$refs.data_table.$slots.default[i].componentOptions.propsData.prop)
+                {
+                    let item = this.$refs.data_table.$slots.default[i].componentOptions.propsData;
+
+                    //使用表格里的label和name生成columns,并和tableData对应
+                    columns[item.prop]=new Object();
+                    columns[item.prop].name = item.label;
+                    switch (item.prop)
+                    {
+                        case 'brief': columns[item.prop].wpx = 160; break;
+                        case 'prjname': columns[item.prop].wpx = 140; break;
+                        default: columns[item.prop].wpx = 90; break;
+                    }
+                }
+            }
+
+            //添加具体内容选项,后续导出前进行展开
+            columns["temp_content"] = new Object();
+            columns["temp_content"].name = "具体内容";
+            columns["temp_content"].dateRange = [new Date(),new Date()];
+
+            //时间范围按照data中时间最早的算
+            for(let i in data)
+            {
+                if(data[i].create_date <columns["temp_content"].dateRange[0].getTime())
+                {
+                    columns["temp_content"].dateRange[0] = new Date(data[i].create_date);
+                }
+            }
+
+            return columns;
+        },
         /* 导出当前页的记录 */
         curpageExport(){
+            //靠挂合成在时间列里隐藏的uuid把具体数据都倒出来,uuid处于第c列
+            let tableDom = document.querySelector(".el-table__body-wrapper table");
+            let tempSheet = XLSX.utils.table_to_book(tableDom).Sheets.Sheet1;
+            let data = [];
+
+            for(let key in tempSheet)
+            {
+                if(key.search("C") != -1)
+                {
+                    for(let i in this.show_data)
+                    {
+                        if(tempSheet[key].v.search(this.show_data[i].uuid) != -1)
+                        {
+                            //应该push clone
+                            data.push(Object.assign({},this.show_data[i]));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            this.exportAction = async function (columns,dateRange){
+                //根据最新到表单项进行导出数据生成
+                let filename = new Date().toString()+" 当前页面导出.xlsx";
+                let head_style = {
+                                    fill: {
+                                        fgColor: { rgb: 'FFA3F4B1' }
+                                    },
+                                    font: {
+                                        name: '宋体',
+                                        sz: 12,
+                                        bold: true
+                                    },
+                                    border: {
+                                        bottom: {
+                                        style: 'thin',
+                                        color: 'FF000000'
+                                        }
+                                    }
+                                };
+                let workbook = XLSX.utils.book_new();
+                let bookType = null;
+                let ext = path.extname(filename);
+
+                if (ext == null)
+                {
+                    filename += '.xlsx';
+                    bookType = 'xlsx';
+                }
+                else
+                {
+                    bookType = ext.substr(1).toLowerCase();
+                }
+
+                let sheetname = "当前页面显示导出"
+                let style_conf = null;
+                               
+                //完成数据合规,data为闭包前导入
+                for(const j in data)
+                {
+                    for(const k in data[j])
+                    {
+                        //时间戳转时间
+                        if(k == "create_date")
+                        {
+                            data[j][k] = date2shortStr(data[j][k]);
+                        }
+                        else if(k == "period")
+                        {
+                            data[j][k] = getSchemeStrwithDate(data[j].period,data[j].create_date);
+                        }
+                        else if(k == "status")
+                        {
+                            data[j][k] = data[j][k]+"("+data[j].percent+"%)";
+                        }
+                        
+                        //数组转字符串
+                        if(Object.prototype.toString.call(data[j][k])=='[object Array]')
+                        {
+                            //转数组为字符串
+                            data[j][k] = data[j][k].toString();
+                        }
+                    }
+                }
+
+                //补充具体内容 columns
+                for(let i in data)
+                {
+                    //生成具体内容,并插入到data中
+                    await time_line.methods.getLineContent(data[i].uuid,dateRange).then((timelineData)=>{
+                        for(let key in columns)
+                        {
+                            //查询具有具体时间的列
+                            if(columns[key].dateRange)
+                            {
+                                // console.dir("-----------------------");
+                                // console.dir(timelineData);
+                                // console.dir(columns[key].dateRange);
+                                let content = time_line.methods.line2Text(timelineData,columns[key].dateRange);
+                                if(content)
+                                {
+                                    data[i][columns[key].name] = content;
+                                }
+                            }
+                        }
+                    }).catch((err)=>{
+                        console.dir(data[i].uuid+":"+err);
+                    });
+
+                }
+
+                workbook.SheetNames.push(sheetname);
+                workbook.Sheets[sheetname] = exportExcel(data,
+                                                         columns,
+                                                         bookType,
+                                                         head_style,
+                                                         style_conf);
+
+                let wbOut = XLSXStyle.write(workbook, { bookType: bookType, bookSST: false, type: 'binary' });
+
+                saveAs(new Blob([s2ab(wbOut)], { type: '' }), filename);
+            };
+            this.exportOption = this.createExportOpt(data);
+            this.exportLabel = "当前页面展示内容导出";
+            this.open_export_dialog = true;
         },
         /* 一键导出当前记录 */
         async easyExport(){
             let columns = new Object();
 
-            for(let i in this.$refs.show_data.$slots.default)
+            console.dir(this.$refs);
+            console.dir(this.show_data);
+            for(let i in this.$refs.data_table.$slots.default)
             {
-                if(this.$refs.show_data.$slots.default[i].componentOptions
-                    && this.$refs.show_data.$slots.default[i].componentOptions.propsData.prop)
+                if(this.$refs.data_table.$slots.default[i].componentOptions
+                    && this.$refs.data_table.$slots.default[i].componentOptions.propsData.prop)
                 {
-                    let item = this.$refs.show_data.$slots.default[i].componentOptions.propsData;
+                    let item = this.$refs.data_table.$slots.default[i].componentOptions.propsData;
 
                     //使用表格里的label和name生成columns,并和tableData对应
                     columns[item.prop]=new Object();
@@ -1078,7 +1339,6 @@ export default {
                                 data[j][k] = data[j][k].toString();
                             }
                         }
-                        console.dir(data[j]);
                     }
                     workbook.SheetNames.push(sheetname);
                     workbook.Sheets[sheetname] = exportExcel(data,

@@ -34,7 +34,7 @@
     <el-main>
         <router-view/>
     </el-main>
-    <el-footer height="5vh">Copyright ©2021 Ayden.Shu. All Rights Reserved.</el-footer>
+    <el-footer height="5vh">Report System V0.0.2 Copyright ©2021 Ayden.Shu. All Rights Reserved.</el-footer>
 </el-container>
 </template>
 

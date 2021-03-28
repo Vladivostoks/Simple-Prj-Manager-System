@@ -6,7 +6,7 @@
   :visible.sync="dialogFormVisible"
   :before-close="handleClose"
   :close-on-click-modal="false"
-  width="20%">
+  width="30vw">
   <el-form :model="form" ref="form" size="mini" :rules="rules">
     <el-form-item label="用户名" label-width="100px" prop="username">
         <el-input v-model="form.username"
@@ -187,11 +187,19 @@ export default {
                         data:form
                     }).then((res) => {
                         //判断返回值 
-                        console.dir(res.data)
-                        //成功抛出
+                        if(!res.data.ret)
+                        {
+                            this.$message({
+                                type: 'error',
+                                message: '创建用户失败'
+                            });
+                        }
                         this.$emit("dialog-submit",this.form);
                     }).catch((res)=>{
-                        alert(`服务请求失败 Code=>${res.request.status}`);
+                        this.$message({
+                            type: 'error',
+                            message: res
+                        });
                         //test
                         this.$emit("dialog-submit",this.form);
                     });
