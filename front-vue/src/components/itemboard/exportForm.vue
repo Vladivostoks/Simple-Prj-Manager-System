@@ -230,6 +230,9 @@ export default {
                             if(this.form.checkedOption.indexOf("具体内容") > -1 
                                 && columns[key].name == "具体内容")
                             {
+                                let wpx = columns[key].wpx;
+                                let alignment = columns[key].alignment;
+
                                 dateRange[0] = columns[key].dateRange[0].getTime() >
                                                 this.form.contentTimeRange[0].getTime()?
                                                 columns[key].dateRange[0]:this.form.contentTimeRange[0];
@@ -241,7 +244,7 @@ export default {
                                     let Month = this.form.contentTimeRange[1].getMonth(); //当前月
                                     let Year = this.form.contentTimeRange[1].getFullYear(); //当前年
 
-                                    dateRange[1] = new Date(Year, Month, Day - DayOfWeek+7);
+                                    dateRange[1] = new Date(Year, Month, Day - DayOfWeek+5)
                                 }
                                 else
                                 {
@@ -260,7 +263,7 @@ export default {
 
                                     if(this.form.isWeekRange)
                                     {
-                                        timeName = date2shortStr(new Date(nowYear, nowMonth, nowDay - 7));
+                                        timeName = date2shortStr(new Date(nowYear, nowMonth, nowDay));
                                     }
                                     else
                                     {
@@ -269,7 +272,8 @@ export default {
 
                                     columns[timeName]=new Object();
                                     columns[timeName].name = timeName;
-                                    columns[timeName].wpx = 160;
+                                    columns[timeName].wpx = wpx;
+                                    columns[timeName].alignment = alignment;
 
                                     if(this.form.isWeekRange)
                                     {

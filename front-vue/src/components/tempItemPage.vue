@@ -120,6 +120,8 @@
             <el-table-column
                 prop="prjmodel"
                 min-width="5%"
+                :filters="modelOpt"
+                :filter-method="tableFilter"
                 label="产品型号">
                 <template v-slot="scope">
                     <el-tag 
@@ -205,6 +207,7 @@
                 <template v-slot="scope">
                     <el-tag 
                     disable-transitions
+                    type="success"
                     size="small"
                     style="margin: 1px;"
                     v-for="item in scope.row.duty_persons"
@@ -222,7 +225,6 @@
                 <template v-slot="scope">
                     <el-tag 
                     disable-transitions 
-                    type="success"
                     size="small"
                     style="margin: 1px;"
                     v-for="item in scope.row.relate_persons"
@@ -389,6 +391,52 @@ function getSchemeStrwithDate(period,date){
     return `${week}周/${period}周`;
 }
 
+/**
+ * @description: 创建选项
+ * @param {*} object
+ * @param {*} key
+ * @return {*}
+ */
+function createOpt(object,key){
+    let index_t;
+    let index_p;
+    let set = new Set();
+    let ret = [];
+
+    /* 生成当前项目区域集合 */
+    for(index_t in object)
+    {
+        if(Object.prototype.toString.call(object)=='[object Array]')
+        {
+            for(index_p in object[index_t][key])
+            {
+                set.add(object[index_t][key][index_p]);
+            }
+        }
+        else
+        {
+            if(object[index_t][key] != null)
+            {
+                set.add(object[index_t][key]);
+            }
+        }
+    }
+
+    let array = Array.from(set);
+
+    for(index_t in array)
+    {
+        let pair={
+            text: array[index_t],
+            value: array[index_t],
+        };
+
+        ret.push(pair);
+    }
+
+    return ret; 
+}
+
 export default {
   name: 'tempItemPage',
   data() {
@@ -415,7 +463,7 @@ export default {
             /*缓存列表*/
             total_data:[],
             /*显示列表*/
-            show_data:[/*{
+            show_data:[{
                 uuid: '2e0e322a-503a-47fd-b28b-3a1202b55502',
                 create_date: new Date().getTime(),
                 prjmodel: [],
@@ -427,7 +475,7 @@ export default {
                 status: '执行中',
                 relate_persons: ['Ayden.Shu'],
                 duty_persons: ['Ayden.Shu',"shuzhengyang"]
-            }*/],
+            }],
             /* 导出对话框 */
             open_export_dialog:false,
             /* 导出对话框标题 */
@@ -447,143 +495,22 @@ export default {
     },
     computed: {
         statusOpt(){
-            let index_t;
-            let set = new Set();
-            let ret = [];
-
-            /* 生成当前项目状态集合 */
-            for(index_t in this.show_data)
-            {
-                if(this.show_data[index_t].status != null)
-                {
-                    set.add(this.show_data[index_t].status);
-                }
-            }
-
-            let array = Array.from(set);
-
-            for(index_t in array)
-            {
-                let pair={
-                    text: array[index_t],
-                    value: array[index_t],
-                };
-
-                ret.push(pair);
-            }
-            return ret;
+            return createOpt(this.show_data,"status");
         },
         typeOpt(){
-            let index_t;
-            let index_p;
-            let set = new Set();
-            let ret = [];
-
-            /* 生成当前项目类型集合 */
-            for(index_t in this.show_data)
-            {
-                for(index_p in this.show_data[index_t].prjtype)
-                {
-                    set.add(this.show_data[index_t].prjtype[index_p]);
-                }
-            }
-
-            let array = Array.from(set);
-
-            for(index_p in array)
-            {
-                let pair={
-                    text: array[index_p],
-                    value: array[index_p],
-                };
-
-                ret.push(pair);
-            }
-
-            return ret; 
+            return createOpt(this.show_data,"prjtype");
         },
         regionOpt(){
-            let index_t;
-            let set = new Set();
-            let ret = [];
-
-            /* 生成当前项目区域集合 */
-            for(index_t in this.show_data)
-            {
-                set.add(this.show_data[index_t].region);
-            }
-
-            let array = Array.from(set);
-
-            for(index_t in array)
-            {
-                let pair={
-                    text: array[index_t],
-                    value: array[index_t],
-                };
-
-                ret.push(pair);
-            }
-
-            return ret; 
+            return createOpt(this.show_data,"region");
+        },
+        modelOpt(){
+            return createOpt(this.show_data,"prjmodel");
         },
         personOpt(){
-            let index_t;
-            let index_p;
-            let set = new Set();
-            let ret = [];
-
-            /* 生成当前表格执行人员集合 */
-            for(index_t in this.show_data)
-            {
-                for(index_p in this.show_data[index_t].duty_persons)
-                {
-                    set.add(this.show_data[index_t].duty_persons[index_p]);
-                }
-            }
-
-            let array = Array.from(set);
-
-            for(index_p in array)
-            {
-                let pair={
-                    text: array[index_p],
-                    value: array[index_p],
-                };
-
-                ret.push(pair);
-            }
-
-            return ret; 
+            return createOpt(this.show_data,"duty_persons");
         },
         relationOpt(){
-            let index_t;
-            let index_p;
-            let set = new Set();
-            let ret = [];
-
-            /* 生成当前表格关联人员集合 */
-            for(index_t in this.show_data)
-            {
-                for(index_p in this.show_data[index_t].relate_persons)
-                {
-                    set.add(this.show_data[index_t].relate_persons[index_p]);
-                }
-            }
-
-            let array = Array.from(set);
-
-            for(index_p in array)
-            {
-                let pair={
-                    text: array[index_p],
-                    value: array[index_p],
-                };
-
-                ret.push(pair);
-            }
-
-            return ret; 
+            return createOpt(this.show_data,"relate_persons");
         }
     },
     watch: {},
@@ -602,7 +529,18 @@ export default {
          * @return {Object} 样式描述
          */
         cellStyle({row, column, rowIndex, columnIndex}){
-            
+            let date = new Date();
+            let nowDayOfWeek = date.getDay(); //今天本周的第几天
+            let nowDay = date.getDate(); //当前日
+            let nowMonth = date.getMonth(); //当前月
+            let nowYear = date.getFullYear(); //当前年
+
+            date = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
+
+            if(row.lastupdate_date<date.getTime() || row.percent == 0)
+            {
+                return {background: "#C6E2FF"};
+            }
         },
         /* 按照内容只展示检索字段 */
         filterWithKeyWords(search){
@@ -1039,8 +977,23 @@ export default {
                     columns[item.prop].name = item.label;
                     switch (item.prop)
                     {
-                        case 'brief': columns[item.prop].wpx = 160; break;
-                        case 'prjname': columns[item.prop].wpx = 140; break;
+                        case 'prjname':{
+                            columns[item.prop].wpx = 140;
+                            columns[item.prop].alignment = new Object();
+                            columns[item.prop].alignment.wrapText = true;
+                            break;
+                        } 
+                        case 'brief': {
+                            columns[item.prop].wpx = 200;
+                            columns[item.prop].alignment = new Object();
+                            columns[item.prop].alignment.wrapText = true;
+                            break;
+                        }
+                        case 'prjtype':{
+                            columns[item.prop].wpx = 110;
+                            columns[item.prop].alignment = new Object();
+                            columns[item.prop].alignment.wrapText = true;
+                        }
                         default: columns[item.prop].wpx = 90; break;
                     }
                 }
@@ -1050,6 +1003,9 @@ export default {
             columns["temp_content"] = new Object();
             columns["temp_content"].name = "具体内容";
             columns["temp_content"].dateRange = [new Date(),new Date()];
+            columns["temp_content"].wpx = 240;
+            columns["temp_content"].alignment = new Object();
+            columns["temp_content"].alignment.wrapText = true;
 
             //时间范围按照data中时间最早的算
             for(let i in data)
@@ -1172,7 +1128,6 @@ export default {
                     }).catch((err)=>{
                         console.dir(data[i].uuid+":"+err);
                     });
-
                 }
 
                 workbook.SheetNames.push(sheetname);
@@ -1192,168 +1147,174 @@ export default {
         },
         /* 一键导出当前记录 */
         async easyExport(){
-            let columns = new Object();
+            let self = this;
 
-            console.dir(this.$refs);
-            console.dir(this.show_data);
-            for(let i in this.$refs.data_table.$slots.default)
-            {
-                if(this.$refs.data_table.$slots.default[i].componentOptions
-                    && this.$refs.data_table.$slots.default[i].componentOptions.propsData.prop)
-                {
-                    let item = this.$refs.data_table.$slots.default[i].componentOptions.propsData;
-
-                    //使用表格里的label和name生成columns,并和tableData对应
-                    columns[item.prop]=new Object();
-                    columns[item.prop].name = item.label;
-                    switch (item.prop)
-                    {
-                        case 'brief': columns[item.prop].wpx = 160; break;
-                        case 'prjname': columns[item.prop].wpx = 140; break;
-                        default: columns[item.prop].wpx = 90; break;
-                    }
+            this.exportAction = async function (columns,dateRange){
+                var weekCount = function(){
+                    let curDate = new Date();
+                    let date = new Date();
+                    // 设置本年的第一天
+                    date.setMonth(0);
+                    date.setDate(1);
+                    let dateGap = curDate.getTime() - date.getTime();
+                    return Math.ceil(dateGap /(7*24*60*60*1000));
                 }
-            }
 
-            var weekCount = function(){
-                let curDate = new Date();
-                let date = new Date();
-                // 设置本年的第一天
-                date.setMonth(0);
-                date.setDate(1);
-                let dateGap = curDate.getTime() - date.getTime();
-                return Math.ceil(dateGap /(7*24*60*60*1000));
-            }
+                let filename = "第"+weekCount()+"周周报.xlsx";
 
-            let filename = "第"+weekCount()+"周周报.xlsx";
+                let sheet_table = ['create','complete','incomplete'];
+                let head_style= {
+                                    fill: {
+                                        fgColor: { rgb: 'FFA3F4B1' }
+                                    },
+                                    font: {
+                                        name: '宋体',
+                                        sz: 12,
+                                        bold: true
+                                    },
+                                    border: {
+                                        bottom: {
+                                        style: 'thin',
+                                        color: 'FF000000'
+                                        }
+                                    }
+                                };
+                let workbook = XLSX.utils.book_new();
+                let bookType = null;
+                let ext = path.extname(filename);
+                if (ext == null)
+                {
+                    filename += '.xlsx';
+                    bookType = 'xlsx';
+                }
+                else
+                {
+                    bookType = ext.substr(1).toLowerCase();
+                }
 
-            let sheet_table = ['create','complete','incomplete'];
-            let head_style= {
-                                fill: {
-                                    fgColor: { rgb: 'FFA3F4B1' }
-                                },
-                                font: {
-                                    name: '宋体',
-                                    sz: 12,
-                                    bold: true
-                                },
-                                border: {
-                                    bottom: {
-                                    style: 'thin',
-                                    color: 'FF000000'
+                //按照三个表生成
+                for(const i in sheet_table)
+                {
+                    let time_range = new Array(2);
+                    let is_updatetime = false;
+                    let sheetname = "本周新增"
+                    let style_conf = null;
+
+                    // 时间生成为当前周的
+                    let now = new Date();//当前日期
+                    let nowDayOfWeek = now.getDay(); //今天本周的第几天
+                    let nowDay = now.getDate(); //当前日
+                    let nowMonth = now.getMonth(); //当前月
+                    let nowYear = now.getFullYear(); //当前年
+
+                    time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
+                    time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
+
+                    //和页面显示获取时间一致
+                    if(sheet_table[i] === "create")
+                    {
+                        sheetname = "本周新增"
+                        style_conf = null;
+                    }
+                    else if(sheet_table[i] === "incomplete")
+                    {
+                        time_range[0] = new Date(1970, 1, 1).getTime();
+                        time_range[1] = new Date().getTime();
+                        style_conf = null;
+                        sheetname = "未完成"
+                    }
+                    else if(sheet_table[i] === "complete")
+                    {
+                        style_conf = null;
+                        sheetname = "已完成"
+                        is_updatetime = true;
+                    }
+
+                    await self.affairGet(getTimeRange(time_range),sheet_table[i],is_updatetime).then(async function(data){
+                        if(sheet_table[i] != "create")
+                        {
+                            for(let j=data.length-1;j>=0;j--)
+                            {
+                                //剔除已完成和未完成的本周项目
+                                if(data[j].create_date>new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime())
+                                {
+                                    data.splice(j, 1);
+                                }
+                            }
+                        }
+
+                        //完成数据合规
+                        for(const j in data)
+                        {
+                            for(const k in data[j])
+                            {
+                                //时间戳转时间
+                                if(k == "create_date")
+                                {
+                                    data[j][k] = self.date2str(data[j][k]);
+                                }
+                                else if(k == "period")
+                                {
+                                    data[j][k] = self.getSchemeStr(null,data[j]);
+                                }
+                                else if(k == "status")
+                                {
+                                    data[j][k] = data[j][k]+"("+data[j].percent+"%)";
+                                }
+
+                                //数组转字符串
+                                if(Object.prototype.toString.call(data[j][k])=='[object Array]')
+                                {
+                                    //转数组为字符串
+                                    data[j][k] = data[j][k].toString();
+                                }
+                            }
+                        }
+
+                        //补充具体内容 columns
+                        for(let i in data)
+                        {
+                            //生成具体内容,并插入到data中
+                            await time_line.methods.getLineContent(data[i].uuid,dateRange).then((timelineData)=>{
+                                for(let key in columns)
+                                {
+                                    //查询具有具体时间的列
+                                    if(columns[key].dateRange)
+                                    {
+                                        // console.dir("-----------------------");
+                                        // console.dir(timelineData);
+                                        // console.dir(columns[key].dateRange);
+                                        let content = time_line.methods.line2Text(timelineData,columns[key].dateRange);
+                                        if(content)
+                                        {
+                                            data[i][columns[key].name] = content;
+                                        }
                                     }
                                 }
-                            };
-            let workbook = XLSX.utils.book_new();
-            let bookType = null;
-            let ext = path.extname(filename);
-            if (ext == null)
-            {
-                filename += '.xlsx';
-                bookType = 'xlsx';
-            }
-            else
-            {
-                bookType = ext.substr(1).toLowerCase();
-            }
-
-            //按照三个表生成
-            for(const i in sheet_table)
-            {
-                let self = this;
-                let time_range = new Array(2);
-                let is_updatetime = false;
-                let sheetname = "本周新增"
-                let style_conf = null;
-
-                // 时间生成为当前周的
-                let now = new Date();//当前日期
-                let nowDayOfWeek = now.getDay(); //今天本周的第几天
-                let nowDay = now.getDate(); //当前日
-                let nowMonth = now.getMonth(); //当前月
-                let nowYear = now.getFullYear(); //当前年
-
-                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
-                time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
-
-                //和页面显示获取时间一致
-                if(sheet_table[i] === "create")
-                {
-                    sheetname = "本周新增"
-                    style_conf = null;
-                }
-                else if(sheet_table[i] === "incomplete")
-                {
-                    time_range[0] = new Date(1970, 1, 1).getTime();
-                    time_range[1] = new Date().getTime();
-                    style_conf = null;
-                    sheetname = "未完成"
-                }
-                else if(sheet_table[i] === "complete")
-                {
-                    style_conf = null;
-                    sheetname = "已完成"
-                    is_updatetime = true;
-                }
-
-                await this.affairGet(getTimeRange(time_range),sheet_table[i],is_updatetime).then((data)=>{
-                    if(sheet_table[i] != "create")
-                    {
-                        for(let j=data.length-1;j>=0;j--)
-                        {
-                            //剔除已完成和未完成的本周项目
-                            if(data[j].create_date>new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime())
-                            {
-                                data.splice(j, 1);
-                            }
+                            }).catch((err)=>{
+                                console.dir(data[i].uuid+":"+err);
+                            });
                         }
-                    }
 
-                    //完成数据合规
-                    for(const j in data)
-                    {
-                        for(const k in data[j])
-                        {
-                            //时间戳转时间
-                            if(k == "create_date")
-                            {
-                                data[j][k] = self.date2str(data[j][k]);
-                            }
-                            else if(k == "period")
-                            {
-                                data[j][k] = self.getSchemeStr(null,data[j]);
-                            }
-                            else if(k == "status")
-                            {
-                                data[j][k] = data[j][k]+"("+data[j].percent+"%)";
-                            }
-                            else if(k == "brief")
-                            {
-                                // TODO: 更换简介为本周时间线更新内容
-                            }
+                        workbook.SheetNames.push(sheetname);
+                        workbook.Sheets[sheetname] = exportExcel(data,
+                                                                 columns,
+                                                                 bookType,
+                                                                 head_style,
+                                                                 style_conf);
+                    }).catch((res)=>{
+                        console.dir(res);
+                    });
+                }
 
-                            //数组转字符串
-                            if(Object.prototype.toString.call(data[j][k])=='[object Array]')
-                            {
-                                //转数组为字符串
-                                data[j][k] = data[j][k].toString();
-                            }
-                        }
-                    }
-                    workbook.SheetNames.push(sheetname);
-                    workbook.Sheets[sheetname] = exportExcel(data,
-                                                             columns,
-                                                             bookType,
-                                                             head_style,
-                                                             style_conf);
-                }).catch((res)=>{
-                    console.dir(res);
-                });
+                let wbOut = XLSXStyle.write(workbook, { bookType: bookType, bookSST: false, type: 'binary' });
+
+                saveAs(new Blob([s2ab(wbOut)], { type: '' }), filename);
             }
 
-            let wbOut = XLSXStyle.write(workbook, { bookType: bookType, bookSST: false, type: 'binary' });
-
-            saveAs(new Blob([s2ab(wbOut)], { type: '' }), filename);
+            this.exportOption = this.createExportOpt(null);
+            this.exportLabel = "完整周报导出";
+            this.open_export_dialog = true;
         }
     },
     created() {},

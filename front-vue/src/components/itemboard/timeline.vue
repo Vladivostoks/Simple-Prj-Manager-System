@@ -63,7 +63,7 @@
             </div>
         </el-card>
         <el-button
-            v-if="isEditable && index==0"
+            v-if="isEditable && (index > 0)"
             size="mini"
             type="danger"
             icon="el-icon-delete"
@@ -164,7 +164,7 @@ export default {
                     }
                     else
                     {
-                        reject("暂无时间线记录");
+                        resolve(res.data);
                     }
                 }).catch((err) => {
                     reject(err);
@@ -187,13 +187,13 @@ export default {
                     && contentData[i].timestamp < DateRange[1].getTime())
                 {
                     //合成内容包括实施&结果
-                    text += i+".";
+                    text += new Date(contentData[i].timestamp).toISOString()+"("+contentData[i].author+")"+":\n";
                     text += contentData[i].progress_content
                     if(!text.endsWith("\n"))
                     {
                         text += "\n";
                     }
-                    text += contentData[i].progress_result+"("+contentData[i].author+")"
+                    text += contentData[i].progress_result;
                     if(i != (contentData.length-1))
                     {
                         if(!text.endsWith("\n"))

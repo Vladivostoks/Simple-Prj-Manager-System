@@ -126,12 +126,12 @@ class Affairs(Resource):
             # 查询具体事件时间线
             timeline = affairs_data.AffairContent(affair["uuid"]).search_latest_record()
             AFFAIR_CONTENT_DATA_DB_LOCK.release()
-
             if timeline:
                 if (time.time()*1000-timeline["timestamp"]) > 7*24*60*60*1000:
                     if affair["status"]=="执行中":
                         # 超过一周没更新，执行任务状态设置为暂停
                         affair["status"] = "暂停中" 
+                    affair["percent"] = timeline['percent']
                 else:
                     if affair["status"]!="已完成" and affair["status"]!="已终止":
                         # 超过一周没更新，执行任务状态设置为暂停
