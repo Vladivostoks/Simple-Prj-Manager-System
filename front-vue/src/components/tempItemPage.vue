@@ -463,7 +463,7 @@ export default {
             /*缓存列表*/
             total_data:[],
             /*显示列表*/
-            show_data:[{
+            show_data:[/*{
                 uuid: '2e0e322a-503a-47fd-b28b-3a1202b55502',
                 create_date: new Date().getTime(),
                 prjmodel: [],
@@ -475,7 +475,7 @@ export default {
                 status: '执行中',
                 relate_persons: ['Ayden.Shu'],
                 duty_persons: ['Ayden.Shu',"shuzhengyang"]
-            }],
+            }*/],
             /* 导出对话框 */
             open_export_dialog:false,
             /* 导出对话框标题 */
