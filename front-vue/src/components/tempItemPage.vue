@@ -57,18 +57,17 @@
         <el-col :span="7" class="timerange">
             <el-button
                 size="mini"
-                type="success"
-                v-show="table_status=='create'"
+                type="info"
                 @click="easyExport()">一键导出</el-button>
+            <el-button
+                size="mini"
+                type="success"
+                @click="curpageExport()">导出当前显示项目</el-button>
             <el-button
                 size="mini"
                 type="primary"
                 v-show="table_status=='create'"
                 @click="creatNewitem()">新建项目记录</el-button>
-            <el-button
-                size="mini"
-                type="success"
-                @click="curpageExport()">导出当前显示项目</el-button>
         </el-col>
         <el-col :span="1"> 
         </el-col>
@@ -104,6 +103,7 @@
             <el-table-column
                 prop="create_date"
                 min-width="6%"
+                sortable
                 label="创建日期">
                 <template v-slot="scope">
                     <div style="display:none">{{scope.row.uuid}}</div>
@@ -406,7 +406,7 @@ function createOpt(object,key){
     /* 生成当前项目区域集合 */
     for(index_t in object)
     {
-        if(Object.prototype.toString.call(object)=='[object Array]')
+        if(Object.prototype.toString.call(object[index_t][key])=='[object Array]')
         {
             for(index_p in object[index_t][key])
             {

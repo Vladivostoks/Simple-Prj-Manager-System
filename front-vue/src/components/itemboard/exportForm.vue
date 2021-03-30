@@ -238,13 +238,20 @@ export default {
                                                 columns[key].dateRange[0]:this.form.contentTimeRange[0];
                                 if(this.form.isWeekRange)
                                 {
-                                    //导出时间从本周结束开始
+                                    //导出时间从开始日所在周开始日开始，结束日所在周最后一日结束
                                     let DayOfWeek = this.form.contentTimeRange[1].getDay(); //今天本周的第几天
                                     let Day = this.form.contentTimeRange[1].getDate(); //当前日
                                     let Month = this.form.contentTimeRange[1].getMonth(); //当前月
                                     let Year = this.form.contentTimeRange[1].getFullYear(); //当前年
 
-                                    dateRange[1] = new Date(Year, Month, Day - DayOfWeek+5)
+                                    dateRange[1] = new Date(Year, Month, Day - DayOfWeek+7);
+
+                                    DayOfWeek = dateRange[0].getDay(); //今天本周的第几天
+                                    Day = dateRange[0].getDate(); //当前日
+                                    Month = dateRange[0].getMonth(); //当前月
+                                    Year = dateRange[0].getFullYear(); //当前年
+
+                                    dateRange[0] = new Date(Year, Month, Day - DayOfWeek);
                                 }
                                 else
                                 {
@@ -263,7 +270,7 @@ export default {
 
                                     if(this.form.isWeekRange)
                                     {
-                                        timeName = date2shortStr(new Date(nowYear, nowMonth, nowDay));
+                                        timeName = date2shortStr(new Date(nowYear, nowMonth, nowDay-2));
                                     }
                                     else
                                     {
@@ -292,7 +299,6 @@ export default {
                             }
                         }
                     }
-
                     //执行导出动作                
                     this.exportAction(columns,dateRange);
 

@@ -66,9 +66,8 @@ class UserData(DataModel):
     def __del__(self):
         self.__db.close()
 
-    #登陆初始化
+    #添加用户
     def user_add(self,username,prop,passwd):
-        #添加用户
         try:
             cursor = self.__db.cursor()
             cursor.execute(self.__INSERT_USER % {"user_table":self.__table_name,
@@ -87,11 +86,8 @@ class UserData(DataModel):
 
     #删除用户
     def user_delete(self,username):
-        #添加用户
         try:
             cursor = self.__db.cursor()
-            pprint.pprint(self.__table_name)
-            pprint.pprint(username)
             cursor.execute(self.__DELETE_USER % {"user_table":self.__table_name,
                                                  "username":username})
 
