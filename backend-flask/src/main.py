@@ -1,8 +1,8 @@
 '''
 Author: your name
 Date: 2021-03-25 23:39:57
-LastEditTime: 2021-03-29 01:32:02
-LastEditors: your name
+LastEditTime: 2021-04-01 23:21:17
+LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /Simple-Prj-Manager-System/backend-flask/src/main.py
 '''
@@ -17,11 +17,13 @@ from flask_restful import Api
 #from apiRoute.affair import *
 from apiRoute.login import *
 from apiRoute.affair import *
+from apiRoute.option import *
 
 from dataModel.model_version import DataVersion
 from dataModel.affairs_data import AffairContent,AffairList
 from dataModel.user_data import UserData
 from config.backend_conf import DATA_DIR
+from dataModel.option_data import OptionData
 
 #使用pyinstaller打包不能使用相对路径
 if hasattr(sys,'_MEIPASS'):
@@ -51,10 +53,21 @@ api.add_resource(Login, '/login')
 api.add_resource(Affairs,'/affair')
 api.add_resource(AffairsContent,'/affair/<string:affair_id>')
 
+##
+## Form Option API
+##
+api.add_resource(Option,'/option')
+
 if __name__ == '__main__':
     #make data dir
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
     #update Data Model
-    DataVersion(AffairList(),AffairContent(),UserData())
+    DataVersion(AffairList(),
+                AffairContent(),
+                UserData(),
+                OptionData("prjtype_opt"),
+                OptionData("prjmodel_opt"),
+                OptionData("dutyperson_opt"),
+                OptionData("relateperson_opt"))
     app.run(debug=False,host='0.0.0.0',port=80)

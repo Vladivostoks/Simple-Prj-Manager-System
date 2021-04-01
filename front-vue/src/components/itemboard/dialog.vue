@@ -35,6 +35,12 @@
             default-first-option
             style="width:100%"
             placeholder="选择产品型号">
+            <el-option
+                v-for="item in prjmodelList"
+                :key="item"
+                :label="item"
+                :value="item">
+            </el-option>
         </el-select>
     </el-form-item>
     <el-form-item label="项目类型" label-width="120px" prop="prjtype">
@@ -96,7 +102,7 @@
             style="width:100%"
             placeholder="选择处理人员">
         <el-option
-            v-for="item in personList"
+            v-for="item in dutyPersonList"
             :key="item"
             :label="item"
             :value="item">
@@ -111,7 +117,14 @@
             allow-create
             default-first-option
             style="width:100%"
-            placeholder="输入关联人员"></el-select>
+            placeholder="输入关联人员">
+            <el-option
+                v-for="item in relatePersonsList"
+                :key="item"
+                :label="item"
+                :value="item">
+            </el-option>
+        </el-select>
     </el-form-item>
   </el-form>
   <div slot="footer" class="dialog-footer">
@@ -122,6 +135,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
     name: 'item_edit',
     data() {
@@ -142,10 +157,14 @@ export default {
         return {
             /* 表单可见状态 */
             dialogFormVisible: false,
+            /* 设备型号列表 */
+            prjmodelList: [],
             /* 项目类型列表 */
             itemTypeList: ['需求新增','问题反馈','TVD','RV_TVD','HEOP'],
-            /* 待处理人员列表 */
-            personList:[],
+            /* 处理人员列表 */
+            dutyPersonList:[],
+            /* 关联人员列表 */
+            relatePersonsList:[],
             /* 输入输出表单 */
             form: {
                 relate_persons:[],
@@ -203,6 +222,23 @@ export default {
     watch: {
     },
     methods: {
+        getOption(opt)
+        {
+            return new Promise(function(resolve,reject){
+                axios({
+                    url:'/option',
+                    method: 'get',
+                    timeout: 5000,
+                    responseType: 'json',
+                    responseEncoding: 'utf8', 
+                    params: {'option_name':opt}
+                }).then((res) => {
+                    resolve(res.data.option);
+                }).catch((error)=>{
+                    reject(error);
+                }); 
+            })
+        },
         statusChange()
         {
             /*
@@ -240,7 +276,21 @@ export default {
             });
         }
     },
-    created() {},
+    created() {
+        //初始化选项
+        this.getOption("prjtype_opt").then((data)=>{
+            this.itemTypeList = data;
+        });
+        this.getOption("prjmodel_opt").then((data)=>{
+            this.prjmodelList = data;
+        });
+        this.getOption("dutyperson_opt").then((data)=>{
+            this.dutyPersonList = data;
+        });
+        this.getOption("relateperson_opt").then((data)=>{
+            this.relatePersonsList = data;
+        });
+    },
     mounted() {
         //deep copy
         this.form = Object.assign({},this.value);

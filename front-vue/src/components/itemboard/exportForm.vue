@@ -18,6 +18,38 @@
             <el-checkbox v-for="opt in exportOption" :label="opt['name']" :key="opt['name']">{{ opt['name'] }}</el-checkbox>
         </el-checkbox-group>
     </el-form-item>
+    <el-form-item label="导出项目类型" label-width="100px" prop="typeFilter">
+        <el-select
+            v-model="form.typeFilter"
+            multiple
+            filterable
+            default-first-option
+            style="width:100%"
+            placeholder="导出相关类型项目">
+            <el-option
+                v-for="item in typeList"
+                :key="item"
+                :label="item"
+                :value="item">
+            </el-option>
+        </el-select>
+    </el-form-item>
+    <el-form-item label="导出项目执行人员" label-width="100px" prop="personFilter">
+    <el-select
+        v-model="form.personFilter"
+        multiple
+        filterable
+        default-first-option
+        style="width:100%"
+        placeholder="导出相关人员项目">
+        <el-option
+            v-for="item in personsList"
+            :key="item"
+            :label="item"
+            :value="item">
+        </el-option>
+    </el-select>
+    </el-form-item>
     <el-form-item v-if="isContent" label="按照周导出" label-width="100px" prop="isWeekRange">
         <el-switch v-model="form.isWeekRange"></el-switch>
     </el-form-item>
@@ -42,6 +74,7 @@
 </template>
 
 <script>
+import axios from 'axios'
 import {date2shortStr} from '@/assets/js/common.js'
 
 export default {
@@ -62,8 +95,16 @@ export default {
             isContent: true,
             /* 默认全选,选项不为未知 */
             isIndeterminate:false,
+            /* 项目类型列表 */
+            typeList:[],
+            /* 项目人员列表 */
+            personsList:[],
             /* 输入输出表单 */
             form: {
+                /* 类型过滤 */
+                typeFilter:[],
+                /* 人员过滤 */
+                personFilter:[],
                 /* 全选 */
                 checkAll: true,
                 /* 表格列勾选项 */
@@ -75,6 +116,12 @@ export default {
             },
             /* 输入校验规则 */
             rules: {
+                typeFilter: [
+                    { required: true, validator: checkOpt, trigger: 'blur' }
+                ],
+                personFilter: [
+                    { required: true, validator: checkOpt, trigger: 'blur' }
+                ],
                 checkedOption: [
                     { required: true, validator: checkOpt, trigger: 'blur' }
                 ]
@@ -142,6 +189,28 @@ export default {
     computed: {},
     watch: {},
     methods: {
+        /**
+         * @description: 从后台获取对应选项范围
+         * @param {String} opt 获取选项名称
+         * @return {Array} 选项数组
+         */
+        getOption(opt)
+        {
+            return new Promise(function(resolve,reject){
+                axios({
+                    url:'/option',
+                    method: 'get',
+                    timeout: 5000,
+                    responseType: 'json',
+                    responseEncoding: 'utf8', 
+                    params: {'option_name':opt}
+                }).then((res) => {
+                    resolve(res.data.option);
+                }).catch((error)=>{
+                    reject(error);
+                }); 
+            })
+        },
         /**
          * @description: 全选导出项目
          * @param {Boolean} val 是否全选
@@ -300,7 +369,7 @@ export default {
                         }
                     }
                     //执行导出动作                
-                    this.exportAction(columns,dateRange);
+                    this.exportAction(columns,dateRange,this.form.typeFilter,this.form.personFilter);
 
                     this.$emit("dialog-submit");
                 } else {
@@ -309,7 +378,17 @@ export default {
             });
         }
     },
-    created() {},
+    created() {
+        //初始化选项,默认全选
+        this.getOption("prjtype_opt").then((data)=>{
+            this.typeList = data;
+            this.form.typeFilter = data;
+        });
+        this.getOption("dutyperson_opt").then((data)=>{
+            this.personsList = data;
+            this.form.personFilter = data;
+        });
+    },
     mounted() {
         //deep copy
         if(this.exportOption != null)

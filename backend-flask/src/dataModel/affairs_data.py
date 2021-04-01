@@ -7,6 +7,7 @@ import uuid
 from config.backend_conf import LIST_DATA_DB,AFFAIR_CONTENT_DATA_DB
 from config.backend_conf import AFFAIR_LIST_TABLE,ITEM_LIST_TABLE,AFFAIR_CONTENT_DATA_DB
 from dataModel.model_version import DataModel
+from dataModel.option_data import OptionData
 
 def dict_factory(cursor, row):  
     d = {}  
@@ -390,7 +391,11 @@ class AffairList(DataModel):
                                                  "lasteupdate_date":int(time.time()*1000)})
             cursor.close()
             self.__db.commit()
-
+            # 顺带把数组更新到选项表中
+            OptionData("prjtype_opt").option_add(type)
+            OptionData("prjmodel_opt").option_add(model)
+            OptionData("dutyperson_opt").option_add(dutyperson)
+            OptionData("relateperson_opt").option_add(relateperson)
         except Exception as e:
             pprint.pprint(e)
             return False
@@ -433,7 +438,7 @@ class AffairList(DataModel):
             # 是否限定人员
             if other_param["username"] and other_param["userprop"] == "normalizer": 
                 # sql注入? 待测试
-                sql = sql + f""" and duty_persons LIKE "{other_param['username']}" """
+                sql = sql + f""" and duty_persons LIKE "%%{other_param['username']}%%" """
             cursor.execute(sql % {"affair_list_table":self.__table_name,
                                   "start_time":start_time,
                                   "end_time":end_time})

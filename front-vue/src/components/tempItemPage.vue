@@ -1041,7 +1041,7 @@ export default {
                 }
             }
 
-            this.exportAction = async function (columns,dateRange){
+            this.exportAction = async function (columns,dateRange,typefilter,personfilter){
                 //根据最新到表单项进行导出数据生成
                 let filename = new Date().toString()+" 当前页面导出.xlsx";
                 let head_style = {
@@ -1078,8 +1078,21 @@ export default {
                 let style_conf = null;
                                
                 //完成数据合规,data为闭包前导入
-                for(const j in data)
+                for(let j=data.length-1;j>=0;j--)
                 {
+                    let intersection_1 = typefilter.filter(function(v){
+                        return data[j]["prjtype"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
+                    });
+                    let intersection_2 = personfilter.filter(function(v){
+                        return data[j]["duty_persons"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
+                    })
+                    //过滤类型或者人员不包含在导出项中的data,删除它
+                    if(intersection_1.length == 0 || intersection_2.length == 0)
+                    {
+                        data.splice(j, 1);
+                        continue;
+                    }
+
                     for(const k in data[j])
                     {
                         //时间戳转时间
@@ -1104,7 +1117,7 @@ export default {
                         }
                     }
                 }
-
+                
                 //补充具体内容 columns
                 for(let i in data)
                 {
@@ -1149,7 +1162,7 @@ export default {
         async easyExport(){
             let self = this;
 
-            this.exportAction = async function (columns,dateRange){
+            this.exportAction = async function (columns,dateRange,typefilter,personfilter){
                 var weekCount = function(){
                     let curDate = new Date();
                     let date = new Date();
@@ -1244,8 +1257,21 @@ export default {
                         }
 
                         //完成数据合规
-                        for(const j in data)
+                        for(let j=data.length-1;j>=0;j--)
                         {
+                            let intersection_1 = typefilter.filter(function(v){
+                                return data[j]["prjtype"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
+                            });
+                            let intersection_2 = personfilter.filter(function(v){
+                                return data[j]["duty_persons"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
+                            })
+                            //过滤类型或者人员不包含在导出项中的data,删除它
+                            if(intersection_1.length == 0 || intersection_2.length == 0)
+                            {
+                                data.splice(j, 1);
+                                continue;
+                            }
+
                             for(const k in data[j])
                             {
                                 //时间戳转时间
