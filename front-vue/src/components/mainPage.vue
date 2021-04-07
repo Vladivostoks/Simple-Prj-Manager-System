@@ -6,15 +6,15 @@
                      mode="horizontal"
                      v-model="curPage"
                      :router="true"
-                     background-color="#E9EEF3"
+                     background-color="transparent"
                      text-color="#545c64"
                      active-text-color="#0b71df">
                 <el-menu-item index="shortItem">
                     <div class="el-icon-edit-outline"> 事 务 </div>
                 </el-menu-item>
-                <!--el-menu-item index="baselineItem">
+                <!-- <el-menu-item index="baselineItem">
                     <div class="el-icon-guide"> 项 目 </div>
-                </el-menu-item-->
+                </el-menu-item> -->
                 <el-menu-item index="contrlBroad" v-if="user_prop=='administrators'">
                     <div class="el-icon-setting"> 系 统 </div>
                 </el-menu-item>
@@ -46,7 +46,7 @@ export default {
   name: 'mainPage',
   data() {
         return {
-            version : "v0.0.3",
+            version : "v0.0.4",
             username : getCookie("username"),
             user_prop : getCookie("userprop"),
             iconName : "el-icon-user-solid",
@@ -95,7 +95,7 @@ export default {
         height: 100vh;
     }
     .el-header {
-        background-color: #E9EEF3;
+        background-color: #909399;
         padding: 0px;
     }
 

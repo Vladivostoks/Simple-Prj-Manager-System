@@ -18,7 +18,7 @@
             <el-checkbox v-for="opt in exportOption" :label="opt['name']" :key="opt['name']">{{ opt['name'] }}</el-checkbox>
         </el-checkbox-group>
     </el-form-item>
-    <el-form-item label="导出项目类型" label-width="100px" prop="typeFilter">
+    <el-form-item label="项目类型过滤" label-width="100px" prop="typeFilter">
         <el-select
             v-model="form.typeFilter"
             multiple
@@ -34,7 +34,7 @@
             </el-option>
         </el-select>
     </el-form-item>
-    <el-form-item label="导出项目执行人员" label-width="100px" prop="personFilter">
+    <el-form-item label="执行人员过滤" label-width="100px" prop="personFilter">
     <el-select
         v-model="form.personFilter"
         multiple
@@ -81,9 +81,9 @@ export default {
     name: 'exportOptionForm',
     data() {
         let checkOpt = (rule, value, callback)=>{
-            if(value.length<=0) {
-                callback(new Error('至少需要选择一项'));
-            }
+            // if(value.length<=0) {
+            //     callback(new Error('至少需要选择一项'));
+            // }
             callback();
             return true;
         }
@@ -327,8 +327,8 @@ export default {
                                     dateRange[1] = this.form.contentTimeRange[1];
                                 }
 
-                                //起始时间从当前项目中最早的开始算
-                                for(let date = dateRange[1];date.getTime()>=dateRange[0].getTime();)
+                                //起始时间从当前项目中最早的开始算,前开后闭区间
+                                for(let date = dateRange[1];date.getTime()>dateRange[0].getTime();)
                                 {
                                     //按照每天划分
                                     let nowDay = date.getDate();
@@ -363,7 +363,6 @@ export default {
                                     columns[timeName].dateRange = [nextDate,date];
                                     date=nextDate;
                                 }
-
                                 delete columns[key];
                             }
                         }
@@ -382,11 +381,9 @@ export default {
         //初始化选项,默认全选
         this.getOption("prjtype_opt").then((data)=>{
             this.typeList = data;
-            this.form.typeFilter = data;
         });
         this.getOption("dutyperson_opt").then((data)=>{
             this.personsList = data;
-            this.form.personFilter = data;
         });
     },
     mounted() {

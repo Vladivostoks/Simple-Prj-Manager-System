@@ -268,8 +268,7 @@
                        @dialog-submit="exportOptSubmit"
                        :headLable="exportLabel"
                        :exportAction="exportAction"
-                       :exportOption="exportOption"
-        ></export-option>
+                       :exportOption="exportOption"></export-option>
     </el-main>
     <el-footer height="40px">
         <el-pagination
@@ -537,7 +536,8 @@ export default {
 
             date = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
 
-            if(row.lastupdate_date<date.getTime() || row.percent == 0)
+            if((row.lastupdate_date<date.getTime() || row.percent == 0)
+                && this.table_status!='complete')
             {
                 return {background: "#C6E2FF"};
             }
@@ -668,9 +668,11 @@ export default {
                 if(this.show_data[i].uuid == uuid)
                 {
                     this.show_data[i].percent = percent;
+                    this.show_data[i].status = "执行中";
+                    // this.show_data[i].lastupdate_date = new Date().getTime();
                     this.affairPut(this.show_data[i]).then(()=>{
                         //更新数据显示
-                        this.tableKey = Math.random();
+                        this.$refs.data_table.doLayout();
                     });
                     break;
                 }
@@ -975,26 +977,30 @@ export default {
                     //使用表格里的label和name生成columns,并和tableData对应
                     columns[item.prop]=new Object();
                     columns[item.prop].name = item.label;
+                    columns[item.prop].alignment = new Object();
+                    // 居中
+                    columns[item.prop].alignment.horizontal= 'center';
+                    columns[item.prop].alignment.vertical= 'center';
                     switch (item.prop)
                     {
                         case 'prjname':{
                             columns[item.prop].wpx = 140;
-                            columns[item.prop].alignment = new Object();
                             columns[item.prop].alignment.wrapText = true;
                             break;
                         } 
                         case 'brief': {
                             columns[item.prop].wpx = 200;
-                            columns[item.prop].alignment = new Object();
                             columns[item.prop].alignment.wrapText = true;
                             break;
                         }
                         case 'prjtype':{
                             columns[item.prop].wpx = 110;
-                            columns[item.prop].alignment = new Object();
                             columns[item.prop].alignment.wrapText = true;
                         }
-                        default: columns[item.prop].wpx = 90; break;
+                        default: {
+                            columns[item.prop].wpx = 100;
+                            break;
+                        }
                     }
                 }
             }
@@ -1086,8 +1092,8 @@ export default {
                     let intersection_2 = personfilter.filter(function(v){
                         return data[j]["duty_persons"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
                     })
-                    //过滤类型或者人员不包含在导出项中的data,删除它
-                    if(intersection_1.length == 0 || intersection_2.length == 0)
+                    //过滤类型或者人员包含在导出项中的filter列表中,删除它
+                    if(intersection_1.length != 0 || intersection_2.length != 0)
                     {
                         data.splice(j, 1);
                         continue;
@@ -1117,7 +1123,7 @@ export default {
                         }
                     }
                 }
-                
+
                 //补充具体内容 columns
                 for(let i in data)
                 {
@@ -1265,8 +1271,9 @@ export default {
                             let intersection_2 = personfilter.filter(function(v){
                                 return data[j]["duty_persons"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
                             })
-                            //过滤类型或者人员不包含在导出项中的data,删除它
-                            if(intersection_1.length == 0 || intersection_2.length == 0)
+
+                            //过滤类型或者人员包含在导出项中的filter列表中,删除它
+                            if(intersection_1.length != 0 || intersection_2.length != 0)
                             {
                                 data.splice(j, 1);
                                 continue;

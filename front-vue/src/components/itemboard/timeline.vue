@@ -63,7 +63,7 @@
             </div>
         </el-card>
         <el-button
-            v-if="isEditable && (index > 0)"
+            v-if="isEditable && (index == 0)"
             size="mini"
             type="danger"
             icon="el-icon-delete"
@@ -216,55 +216,67 @@ export default {
         openEdit(formValue){
             if(this.addStatus)
             {
-                this.$refs[formValue].validate((valid) => {
-                    if (valid)
-                    {
-                        let data={};
-                        let self = this;
+                if(this.activities_.length>0
+                   && (this.form.percent < this.activities_[0].percent))
+                {
+                    //进度未满而切换状态到已完成，需要禁止
+                    this.$message({
+                        type: 'error',
+                        message: "新时间线记录进度不能降低",
+                    });
+                }
+                else
+                {
+                    this.$refs[formValue].validate((valid) => {
+                        if (valid)
+                        {
+                            let data={};
+                            let self = this;
                         
-                        /*回车换行处理*/
-                        data.timestamp = new Date().getTime();
-                        data.progress_content = this.form.doneContent;
-                        data.progress_result = this.form.resultContent;
-                        data.percent = this.form.percent;
-                        data.project_status = (this.project_status == "error"?"danger":this.project_status);
-                        data.author = getCookie("username");
+                            /*回车换行处理*/
+                            data.timestamp = new Date().getTime();
+                            data.progress_content = this.form.doneContent;
+                            data.progress_result = this.form.resultContent;
+                            data.percent = this.form.percent;
+                            data.project_status = (this.project_status == "error"?"danger":this.project_status);
+                            data.author = getCookie("username");
 
-                        axios({
-                            url:'/affair/'+self.project_uuid,
-                            method: 'post',
-                            timeout: 5000,
-                            responseType: 'json',
-                            responseEncoding: 'utf8', 
-                            headers: {
-                                    'Content-Type': 'application/json;charset=UTF-8'
-                            },
-                            data:data
-                        }).then((res) => {
-                            if(res.data.message == "插入成功") 
-                            {
-                                data.timestamp = new Date(data.timestamp).toString();
-                                data.index_num = res.data.index_num;
-                                self.activities_.unshift(data);
-                                self.closeEdit();
-                                self.$message({
-                                    type: 'success',
-                                    message: '添加时间线成功!'
-                                });
+                            axios({
+                                url:'/affair/'+self.project_uuid,
+                                method: 'post',
+                                timeout: 5000,
+                                responseType: 'json',
+                                responseEncoding: 'utf8', 
+                                headers: {
+                                        'Content-Type': 'application/json;charset=UTF-8'
+                                },
+                                data:data
+                            }).then((res) => {
+                                if(res.data.message == "插入成功") 
+                                {
+                                    data.timestamp = new Date(data.timestamp).toString();
+                                    data.index_num = res.data.index_num;
+                                    self.activities_.unshift(data);
+                                    self.closeEdit();
+                                    self.$message({
+                                        type: 'success',
+                                        message: '添加时间线成功!'
+                                    });
 
-                                //弹出当前更新百分比
-                                this.$emit("timeline-submit",self.project_uuid,data.percent);
-                            }
-                        }).catch((res)=>{
-                            //Do nothing
-                            console.dir(res);
-                        }); 
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                });
+                                    //弹出当前更新百分比
+                                    this.$emit("timeline-submit",self.project_uuid,data.percent);
+                                }
+                            }).catch((res)=>{
+                                //Do nothing
+                                console.dir(res);
+                            }); 
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    });
+                }
             }
             else
             {

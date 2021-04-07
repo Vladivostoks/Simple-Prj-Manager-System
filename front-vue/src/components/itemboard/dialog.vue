@@ -266,14 +266,25 @@ export default {
             this.$emit("dialog-close");
         },
         Confirm(formValue){
-            this.$refs[formValue].validate((valid) => {
-                if (valid) {
-                    this.dialogFormVisible = false;
-                    this.$emit("dialog-submit",this.form,this.form.uuid);
-                } else {
-                    return false;
-                }
-            });
+            if(this.form.percent != 100 && this.form.status == "已完成") 
+            {
+                //进度未满而切换状态到已完成，需要禁止
+                this.$message({
+                    type: 'error',
+                    message: "设置已完成失败,项目进度未达到100%",
+                });
+            }
+            else
+            {
+                this.$refs[formValue].validate((valid) => {
+                    if (valid) {
+                        this.dialogFormVisible = false;
+                        this.$emit("dialog-submit",this.form,this.form.uuid);
+                    } else {
+                        return false;
+                    }
+                });
+            }
         }
     },
     created() {

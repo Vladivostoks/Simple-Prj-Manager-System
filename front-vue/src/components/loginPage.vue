@@ -148,7 +148,6 @@ export default {
                     type: 'error',
                     message: error.message,
                 });
-                console.dir(error);
             });
         }
     },

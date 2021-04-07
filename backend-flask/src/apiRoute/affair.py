@@ -139,9 +139,13 @@ class Affairs(Resource):
                         affair["percent"] = timeline['percent']
                     else:
                         affair["percent"] = 100
+                # 修改项目最后时间为最新时间线的时间
+                affair["lastupdate_date"] = timeline["timestamp"]
             else:
-                if (time.time()-affair["create_date"]) > 7*24*60*60 and affair["status"]=="执行中":
+                if (time.time()*1000-affair["create_date"]) > 7*24*60*60 and affair["status"]=="执行中":
                     affair["status"] = "暂停中" 
+                # 修改项目最后时间为项目创建的时间
+                affair["lastupdate_date"] = affair["create_date"]
                 affair["percent"] = 0
             #affair["create_date"] = time.strftime("%Y-%m-%d", time.localtime(affair["create_date"]))
 
