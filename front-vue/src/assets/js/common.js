@@ -61,4 +61,32 @@ function date2shortStr(date_input){
     return (year + "-" + month + "-" + day);
 }
 
-export {setCookie,getCookie,clearCookie,creatUuid,date2shortStr};
+/**
+ * @description: 对象深拷贝
+ * @param {Object} obj 被拷贝对象
+ * @return {Object} 新拷贝对象
+ */
+function deepCopy(obj) {
+    let newobj = obj.constructor === Array ? [] : {};
+    if (typeof obj !== 'object')
+    {
+        return obj;
+    }
+    else
+    {
+        for (let i in obj)
+        {
+            if (typeof obj[i] === 'object')
+            { 
+                newobj[i] = deepCopy(obj[i]);
+            }
+            else
+            {
+                newobj[i] = obj[i];
+            }
+        }
+    }
+    return newobj; //返回深度克隆后的对象
+}
+
+export {setCookie,getCookie,clearCookie,creatUuid,date2shortStr,deepCopy};

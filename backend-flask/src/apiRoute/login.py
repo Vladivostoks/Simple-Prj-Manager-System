@@ -107,7 +107,7 @@ class Login(Resource):
         USER_TABLE_LOCK.acquire()
         ret,prop = user_data.UserData().user_check(**req)
         USER_TABLE_LOCK.release()
-        
+
         if not ret and prop == '':
             return {"ret":False,"message":"用户密码错误"},200 
         elif not ret and prop != '':

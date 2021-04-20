@@ -7,7 +7,10 @@ import router from './router'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 
+import VuePipeline from 'vue-pipeline'
+
 Vue.use(ElementUI)
+Vue.use(VuePipeline)
 
 Vue.config.productionTip = false
 
@@ -18,3 +21,4 @@ new Vue({
   components: { App },
   template: '<App/>',
 })
+

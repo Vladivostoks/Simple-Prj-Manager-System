@@ -34,12 +34,12 @@ class AffairsContent(Resource):
     #删除一条事务记录
     def delete(self, affair_id):
         put_parser = reqparse.RequestParser()
-
-        AFFAIR_CONTENT_DATA_DB_LOCK.acquire()
         put_parser.add_argument('index', dest='index',
                                 type=int, location='json',
                                 required=True, help='Need input index for delete from affair content.')
         req = put_parser.parse_args()
+
+        AFFAIR_CONTENT_DATA_DB_LOCK.acquire()
         # 查询具体事件时间线
         ret = affairs_data.AffairContent(affair_id).delete_record(**req)
         AFFAIR_CONTENT_DATA_DB_LOCK.release()
@@ -105,6 +105,12 @@ class Affairs(Resource):
                                  type=str, location='args',
                                  required=False)
         put_parser.add_argument('isupdatetime', dest='isupdatetime',
+                                 type=str, location='args',
+                                 required=False)
+        put_parser.add_argument('type', dest='type',
+                                 type=str, location='args',
+                                 required=False)
+        put_parser.add_argument('id', dest='uuid',
                                  type=str, location='args',
                                  required=False)
         put_parser.add_argument('userprop', dest='userprop',

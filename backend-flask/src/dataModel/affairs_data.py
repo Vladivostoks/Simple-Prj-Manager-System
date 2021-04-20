@@ -259,6 +259,10 @@ class AffairList(DataModel):
     # 按照时间建立索引
     __CREAT_AFFAIRS_LIST_INDEX = "CREATE INDEX IF NOT EXISTS IDXCreateDate on %(affair_list_table)s(create_date);"
 
+    # 按照id查找
+    __SEARCH_AFFAIRS_WITH_ID = """SELECT * FROM %(affair_list_table)s 
+                                  WHERE uuid = '%(uuid)s'
+                               """
     # 按照创建时间区间查找
     __SEARCH_AFFAIRS_WITH_TIME = """SELECT * FROM %(affair_list_table)s 
                                     WHERE create_date >= %(start_time)d and create_date <= %(end_time)d
@@ -423,25 +427,41 @@ class AffairList(DataModel):
         try:
             cursor = self.__db.cursor()
 
-            # 时间范围为最后更新时间还是创建时间
-            sql = self.__SEARCH_AFFAIRS_WITH_TIME
-            if other_param["isupdatetime"] == 'true': 
-                sql = self.__SEARCH_AFFAIRS_WITH_UPDATE_TIME
-
-            if other_param["iscomplete"] == 'true': 
-                sql = sql + " and (status='已完成' or status='已终止')"
-            elif other_param["iscomplete"] == 'false': 
-                sql = sql + " and (status='执行中' or status='暂停中')"
+            # 查询具体id的项目 
+            if other_param["uuid"]:
+                cursor.execute(self.__SEARCH_AFFAIRS_WITH_ID % {"affair_list_table":self.__table_name,
+                                                                "uuid":other_param['uuid']})
             else:
-                pass #不限制状态
+                # 时间范围为最后更新时间还是创建时间
+                sql = self.__SEARCH_AFFAIRS_WITH_TIME
+                if other_param["isupdatetime"] == 'true': 
+                    sql = self.__SEARCH_AFFAIRS_WITH_UPDATE_TIME
 
-            # 是否限定人员
-            if other_param["username"] and other_param["userprop"] == "normalizer": 
-                # sql注入? 待测试
-                sql = sql + f""" and duty_persons LIKE "%%{other_param['username']}%%" """
-            cursor.execute(sql % {"affair_list_table":self.__table_name,
-                                  "start_time":start_time,
-                                  "end_time":end_time})
+
+                # 项目状态是否是已完成
+                if other_param["iscomplete"] == 'true': 
+                    sql = sql + " and (status='已完成' or status='已终止')"
+                elif other_param["iscomplete"] == 'false': 
+                    sql = sql + " and (status='执行中' or status='暂停中')"
+                else:
+                    pass #不限制状态
+
+                # 是否限定项目类型
+                if other_param["type"]:
+                    sql = sql + f""" and (prjtype LIKE "%%{other_param['type']}%%")"""
+
+                # 基线版本查询仅不包含关联项目的数据
+                if other_param["type"] == "基线版本":
+                    sql = sql + f""" and (relate_itemid != "" or relate_itemid != "None")"""
+
+                # 是否限定人员
+                if other_param["username"] and other_param["userprop"] == "normalizer": 
+                    # sql注入? 待测试
+                    sql = sql + f""" and duty_persons LIKE "%%{other_param['username']}%%" """
+            
+                cursor.execute(sql % {"affair_list_table":self.__table_name,
+                                    "start_time":start_time,
+                                    "end_time":end_time})
             result = cursor.fetchall()
             cursor.close()
 

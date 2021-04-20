@@ -18,12 +18,14 @@ from flask_restful import Api
 from apiRoute.login import *
 from apiRoute.affair import *
 from apiRoute.option import *
+from apiRoute.item import *
 
 from dataModel.model_version import DataVersion
 from dataModel.affairs_data import AffairContent,AffairList
 from dataModel.user_data import UserData
 from config.backend_conf import DATA_DIR
 from dataModel.option_data import OptionData
+from dataModel.item_data import ItemList 
 
 #使用pyinstaller打包不能使用相对路径
 if hasattr(sys,'_MEIPASS'):
@@ -58,6 +60,11 @@ api.add_resource(AffairsContent,'/affair/<string:affair_id>')
 ##
 api.add_resource(Option,'/option')
 
+##
+## Form Item API
+##
+api.add_resource(Items,'/item')
+
 if __name__ == '__main__':
     #make data dir
     if not os.path.exists(DATA_DIR):
@@ -66,6 +73,7 @@ if __name__ == '__main__':
     DataVersion(AffairList(),
                 AffairContent(),
                 UserData(),
+                ItemList(),
                 OptionData("prjtype_opt"),
                 OptionData("prjmodel_opt"),
                 OptionData("dutyperson_opt"),

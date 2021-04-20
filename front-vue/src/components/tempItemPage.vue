@@ -534,7 +534,7 @@ export default {
             let nowMonth = date.getMonth(); //当前月
             let nowYear = date.getFullYear(); //当前年
 
-            date = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
+            date = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek);
 
             if((row.lastupdate_date<date.getTime() || row.percent == 0)
                 && this.table_status!='complete')
@@ -620,7 +620,7 @@ export default {
                 let nowYear = date.getFullYear(); //当前年
 
                 this.weekRange = new Array();
-                this.weekRange[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
+                this.weekRange[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek);
                 this.weekRange[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek));
             }
             this.isUpdateTime = !this.isUpdateTime;
@@ -643,7 +643,7 @@ export default {
                 let nowMonth = date.getMonth(); //当前月
                 let nowYear = date.getFullYear(); //当前年
 
-                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1);
+                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek);
                 time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek));
             }
             
@@ -694,7 +694,7 @@ export default {
                 let nowMonth = now.getMonth(); //当前月
                 let nowYear = now.getFullYear(); //当前年
 
-                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
+                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek).getTime();
                 time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
             }
             else if(index === "incomplete")
@@ -719,7 +719,7 @@ export default {
                 let nowMonth = now.getMonth(); //当前月
                 let nowYear = now.getFullYear(); //当前年
 
-                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
+                time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek).getTime();
                 time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
             }
             /* week设置为一周最后周日时间 */
@@ -1226,7 +1226,7 @@ export default {
                     let nowMonth = now.getMonth(); //当前月
                     let nowYear = now.getFullYear(); //当前年
 
-                    time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek+1).getTime();
+                    time_range[0] = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek).getTime();
                     time_range[1] = new Date(nowYear, nowMonth, nowDay + (8 - nowDayOfWeek)).getTime();
 
                     //和页面显示获取时间一致

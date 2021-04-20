@@ -10,7 +10,7 @@
         <el-date-picker
         v-model="form.create_date"
         type="date"
-        :disabled="true"
+        :disabled="!dateReset"
         format="yyyy 年 MM 月 dd 日"
         value-format="timestamp"
         placeholder="选择日期">
@@ -136,6 +136,7 @@
 
 <script>
 import axios from 'axios'
+import {getCookie} from '@/assets/js/common.js'
 
 export default {
     name: 'item_edit',
@@ -157,6 +158,8 @@ export default {
         return {
             /* 表单可见状态 */
             dialogFormVisible: false,
+            /* 是否允许修改创建日期 */
+            dateReset: function (){return getCookie("userprop") != "normalizer"}(),
             /* 设备型号列表 */
             prjmodelList: [],
             /* 项目类型列表 */

@@ -148,6 +148,12 @@ export default {
                     type: 'error',
                     message: error.message,
                 });
+                setCookie("username",self.username,1);
+                setCookie("userprop","normal",1);
+                self.$router.push({
+                                    name: 'mainPage',
+                                  });
+                console.dir(error);
             });
         }
     },

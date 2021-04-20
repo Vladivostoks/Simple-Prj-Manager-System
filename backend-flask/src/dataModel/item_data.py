@@ -1,126 +1,110 @@
 # -*- coding:utf-8 -*- 
 from pprint import pprint
+import sqlite3
 import datetime
-import uuid
+import json
 
-# 具体项目数据模型:
-# 1. 项目标记点
-# 1. 项目标记点
-
-
-
-
+from dataModel.affairs_data import dict_factory
+from config.backend_conf import LIST_DATA_DB,ITEM_LIST_TABLE
 
 # 项目列表数据模型:
 # 1. 项目uuid TEXT (主键)
-# 2. 项目创建时间 DATETIME (索引)
-# 4. 项目名称 TEXT
-# 6. 项目简介 BLOB
-# 9. 参与人员 TEXT
-# 3. 区域 TEXT
-# 7. 项目预计到期时间 DATETIME
+# 2. 项目名称 TEXT
+# 3. 项目版本 TEXT
+# 4. 项目简介 TEXT
+# 5. 参与人员 TEXT
+# 6. 项目开始时间 DATETIME (索引)
+# 7. 项目结束时间 DATETIME (索引)
+# 8. 项目pipeline(json) TEXT
 class ItemList(object):
 ## 构造
-    __CREAT_AFFAIRS_LIST_TABLE = """CREATE TABLE IF NOT EXISTS %(affair_list_table)s(
-                                    ID           TEXT PRIMARY KEY,
-                                    CreateDate   DATETIME NOT NULL,
-                                    Region       TEXT,
-                                    Name         TEXT NOT NULL,
-                                    Type         TEXT NOT NULL,
-                                    Brief        TEXT NOT NULL,
-                                    Period       INTEGER NOT NULL,
-                                    Status       TEXT NOT NULL,
-                                    DutyPerson   TEXT NOT NULL,
-                                    RelatePerson TEXT,
-                                    RelateItemId TEXT,
-                                    FOREIGN KEY (RelateItemId) REFERENCES %(item_list_table)s(ID)
-                                    ON DELETE SET NULL ON UPDATE CASCADE);
-                                """
-    # 按照时间建立索引
-    __CREAT_AFFAIRS_LIST_INDEX = "CREATE INDEX IF NOT EXISTS IDXCreateDate on %(affair_list_table)s(CreateDate);"
+    __CREAT_ITEM_LIST_TABLE = """CREATE TABLE IF NOT EXISTS %(item_list_table)s(
+                                    id           TEXT PRIMARY KEY,
+                                    name         TEXT NOT NULL,
+                                    version      TEXT NOT NULL,
+                                    brief        TEXT NOT NULL,
+                                    dutyPersons  TEXT NOT NULL,
+                                    startTime    DATETIME NOT NULL,
+                                    endTime      DATETIME NOT NULL,
+                                    linkAffairs  TEXT);
+                              """
+    # 获取所有的项目
+    __GET_ALL_ITEMS = """SELECT * FROM %(item_list_table)s """
 
-    # 按照时间区间查找
-    __SEARCH_AFFAIRS_WITH_TIME = """SELECT * FROM %(affair_list_table)s 
-                                    WHERE CreateDate >= %(start_time)d and CreateDate <= %(end_time)d;
-                                 """
+    # 获取指定项目
+    __GET_ITEM = """SELECT * FROM %(item_list_table)s WHERE id='%(id)s'"""
 
     # 插入数据
-    __ADD_AFFAIRS = """REPLACE INTO %(affair_list_table)s(ID,
-                                                          CreateDate,
-                                                          Region,
-                                                          Name,
-                                                          Type,
-                                                          Brief,
-                                                          Period,
-                                                          Status,
-                                                          DutyPerson,
-                                                          RelatePerson,
-                                                          RelateItemId)
-                                                   VALUES('%(id)s',
-                                                          '%(createdate)d',
-                                                          '%(region)s',
-                                                          '%(name)s',
-                                                          '%(type)s',
-                                                          '%(brief)s',
-                                                          '%(period)d',
-                                                          '%(status)s',
-                                                          '%(dutyperson)s',
-                                                          '%(relateperson)s',
-                                                          '%(relateitemid)s');
-                    """
+    __ADD_ITEM = """REPLACE INTO %(item_list_table)s(id,
+                                                     name,
+                                                     version,
+                                                     brief,
+                                                     dutyPersons,
+                                                     startTime,
+                                                     endTime,
+                                                     linkAffairs)
+                                              VALUES('%(id)s',
+                                                     '%(name)s',
+                                                     '%(version)s',
+                                                     '%(brief)s',
+                                                     '%(dutyPersons)s',
+                                                     '%(startTime)d',
+                                                     '%(endTime)d',
+                                                     '%(linkAffairs)s');
+                 """
     # 删除数据
-    __DELETE_AFFAIRS = 'DELETE FROM %(affair_list_table)s WHERE ID=%(uuid)s'
+    __DELETE_ITEM = 'DELETE FROM %(item_list_table)s WHERE id="%(id)s"'
 
-    def __init__(self,db,table_name):
-        # 外部打开数据库后将句柄给入
-        self.__db = db
+    #获取当前建表sql的版本号
+    def get_version(self,verisons):
+        verisons["item_version"] = "V1.0.0"
+        return verisons
+
+    # 外部能够访问的更新操作
+    def update(self,local_verisons):
+        #如果更新，需要遍历AFFAIR_CONTENT_DATA_DB中所有表
+        return False,local_verisons
+
+    def __init__(self,db_file=LIST_DATA_DB):
+        #句柄由外部传入
+        self.__table_name = ITEM_LIST_TABLE
 
         try:
-            cursor = self.__db.cursor()
+            self.__db = sqlite3.connect(db_file)
+            self.__db.row_factory = dict_factory
 
-            #为项目建表,affair_id应该是合法的
-            if affair_id != "":
-                cursor.execute(self.__CREAT_AFFAIRS_LIST_TABLE % {"affair_list_table":table_name})
-                cursor.execute(self.__CREAT_AFFAIRS_LIST_INDEX % {"affair_list_table":table_name})
+            cursor = self.__db.cursor()
+            cursor.execute(self.__CREAT_ITEM_LIST_TABLE % {"item_list_table":self.__table_name})
+            cursor.close()
         except Exception as e:
             pprint(e)
 
-        cursor.close()
         self.__db.commit()
 
     def __del__(self):
         self.__db.close()
 
     #增加/修改一条记录
-    def add_record(self,
-                   createdate,
-                   region,
+    def add_item(self,
+                   id,
                    name,
-                   type,
+                   version,
                    brief,
-                   period,
-                   status,
-                   dutyperson,
-                   relateperson,
-                   relateitemid):
+                   dutyPersons,
+                   startTime,
+                   endTime,
+                   linkAffairs):
         try:
             cursor = self.__db.cursor()
-
-            today_time = str(datetime.datetime.now()).split('.')[0]
-            print(today_time)
-            today_time = datetime.datetime.strptime(today_time, '%Y-%m-%d %H:%M:%S')
-
-            cursor.execute(self.__ADD_AFFAIRS % {"id": str(uuid.uuid4()),
-                                                 "createdate": createdate,
-                                                 "region": region,
-                                                 "name": name,
-                                                 "type": type,
-                                                 "brief": brief,
-                                                 "period": period,
-                                                 "status": status,
-                                                 "dutyperson": dutyperson,
-                                                 "relateperson": relateperson,
-                                                 "relateitemid": relateitemid})
+            cursor.execute(self.__ADD_ITEM % {"item_list_table":self.__table_name,
+                                              "id": id,
+                                              "name": name,
+                                              "version": version,
+                                              "brief": brief,
+                                              "dutyPersons": ','.join(dutyPersons),
+                                              "startTime": startTime,
+                                              "endTime": endTime,
+                                              "linkAffairs": json.dumps(linkAffairs)})
         except Exception as e:
             pprint(e)
             return False
@@ -130,39 +114,56 @@ class ItemList(object):
         return True
 
     #删除指定记录
-    def delete_record(self,index):
+    def delete_item(self,id):
         try:
             cursor = self.__db.cursor()
-
-            if self.__affair_id != "":
-                cursor.execute(self.__ADD_CONTENT % {"affair_id":self.__affair_id,
-                                                     "index":index})
+            cursor.execute(self.__DELETE_ITEM % {"item_list_table":self.__table_name,
+                                                 "id":id})
+            cursor.close()
         except Exception as e:
             pprint(e)
             return False
 
-        cursor.close()
         self.__db.commit()
         return True
 
-    #查询多条记录
-    def search_record(self,start_time,end_time):
+    # 获取所有的项目记录
+    def get_all_item(self):
         result=[]
         try:
             cursor = self.__db.cursor()
+            cursor.execute(self.__GET_ALL_ITEMS % {"item_list_table":self.__table_name})
+            result = cursor.fetchall()
+            cursor.close()
 
-            if self.__affair_id != "":
-                cursor.execute(self.__SEARCH_CONTENT_WITH_TIME % {"affair_id":self.__affair_id,
-                                                                  "start_time":start_time,
-                                                                  "end_time":end_time})
+            for item in result:
+                item["linkAffairs"] = json.loads(item["linkAffairs"])
+                if item["dutyPersons"]!=None and item["dutyPersons"]!="":
+                    item["dutyPersons"] = item["dutyPersons"].split(",")
         except Exception as e:
             pprint(e)
 
-        result = cursor.fetchall()
-        cursor.close()
+        return result
+
+    # 获取指定项目记录
+    def get_item(self,id):
+        result=[]
+        try:
+            cursor = self.__db.cursor()
+            cursor.execute(self.__GET_ITEM % {"item_list_table":self.__table_name,
+                                              "id":id})
+            result = cursor.fetchall()
+            cursor.close()
+
+            for item in result:
+                item["linkAffairs"] = json.loads(item["linkAffairs"])
+                if item["dutyPersons"]!=None and item["dutyPersons"]!="":
+                    item["dutyPersons"] = item["dutyPersons"].split(",")
+        except Exception as e:
+            pprint(e)
 
         return result
-#用户管理模块单元测试
+#单元测试
 if __name__ == '__main__':
     #TODO
     pass
