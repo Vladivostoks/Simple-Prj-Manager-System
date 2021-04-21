@@ -446,18 +446,17 @@ class AffairList(DataModel):
                 else:
                     pass #不限制状态
 
-                # 是否限定项目类型
+                # 是否限定项目类型,按照项目类型查询对时候,不进行人员查询
                 if other_param["type"]:
                     sql = sql + f""" and (prjtype LIKE "%%{other_param['type']}%%")"""
-
-                # 基线版本查询仅不包含关联项目的数据
-                if other_param["type"] == "基线版本":
-                    sql = sql + f""" and (relate_itemid != "" or relate_itemid != "None")"""
-
-                # 是否限定人员
-                if other_param["username"] and other_param["userprop"] == "normalizer": 
-                    # sql注入? 待测试
-                    sql = sql + f""" and duty_persons LIKE "%%{other_param['username']}%%" """
+                    # 基线版本查询仅不包含关联项目的数据
+                    # if other_param["type"] == "基线版本":
+                    #     sql = sql + f""" and (relate_itemid != "" or relate_itemid != "None")"""
+                else:
+                    # 是否限定人员
+                    if other_param["username"] and other_param["userprop"] == "normalizer": 
+                        # sql注入? 待测试
+                        sql = sql + f""" and duty_persons LIKE "%%{other_param['username']}%%" """
             
                 cursor.execute(sql % {"affair_list_table":self.__table_name,
                                     "start_time":start_time,

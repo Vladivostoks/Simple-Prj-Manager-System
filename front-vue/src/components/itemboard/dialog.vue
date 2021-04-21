@@ -187,6 +187,9 @@ export default {
                 region: [
                     { required: true, message: '需要填写项目归属区域', trigger: 'blur' }
                 ],
+                prjmodel: [
+                    { required: true, message: '需要填写事务关联型号', trigger: 'blur' }
+                ],
                 period: [
                     { required: true, type: 'integer', min: 1, max: 100, message: '计划完成时间至少需要大于1', trigger: 'blur' }
                 ],

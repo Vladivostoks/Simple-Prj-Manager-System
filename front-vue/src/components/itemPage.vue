@@ -48,8 +48,6 @@
             <span>
                 <vue-pipeline   ref="pipeline"
                                 lineStyle="default"
-                                :xstep="200"
-                                :ystep="50"
                                 :data="pipelineShowData"
                                 :showArrow="true">
                 </vue-pipeline>
@@ -184,7 +182,6 @@
                                     <el-select v-model="scope.row.next"
                                                multiple
                                                filterable
-                                               allow-create
                                                @change="nextItemListChange"
                                                default-first-option
                                                style="width:100%"
@@ -529,32 +526,39 @@ export default {
         /* 删除项目 */
         deleteProject(projectId)
         {
-            itemDelete(projectId).then(()=>{
-                this.$message({
-                    type: 'success',
-                    message: "项目删除成功",
-                });
-                for(let i in this.items)
-                {
-                    if(this.items[i].id == projectId)
+            this.$confirm('此操作将删除此项目,是否执行?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                itemDelete(projectId).then(()=>{
+                    this.$message({
+                        type: 'success',
+                        message: "项目删除成功",
+                    });
+                    for(let i in this.items)
                     {
-                        this.items.splice(i,1);
-                        break;
+                        if(this.items[i].id == projectId)
+                        {
+                            this.items.splice(i,1);
+                            break;
+                        }
                     }
-                }
-                if(this.items.length>0)
-                {
-                    this.currentItem = this.items[0];
-                }
-                else
-                {
-                    this.currentItem = defaultItem;
-                }
-            }).catch(()=>{
-                this.$message({
-                    type: 'error',
-                    message: "项目删除失败",
+                    if(this.items.length>0)
+                    {
+                        this.currentItem = this.items[0];
+                    }
+                    else
+                    {
+                        this.currentItem = defaultItem;
+                    }
+                }).catch(()=>{
+                    this.$message({
+                        type: 'error',
+                        message: "项目删除失败",
+                    });
                 });
+            }).catch(() => {
             });
         },
         /* 切换到项目/编辑界面 */
