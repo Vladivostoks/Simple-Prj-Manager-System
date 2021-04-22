@@ -89,4 +89,60 @@ function deepCopy(obj) {
     return newobj; //返回深度克隆后的对象
 }
 
-export {setCookie,getCookie,clearCookie,creatUuid,date2shortStr,deepCopy};
+/**
+ * @description:  计算项目已经处理的时间和实际运行时间比较
+ * @param {Number} period 项目计划时间
+ * @param {Date} date   项目开始时间
+ * @return {String} 表示字符串
+ */
+function getSchemeStrwithDate(period,start_date,end_date){
+    let cur_timestamp = end_date?new Date(end_date).getTime():new Date().getTime();
+    let start_timestamp = new Date(start_date).getTime();
+
+    let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
+
+    if(week<1)
+    {
+        week = 1;
+    }
+    else
+    {
+        week = Math.ceil(week);
+    }
+
+    return `${week}周/${period}周`;
+}
+
+/**
+ * @description:  按照项目已经处理的时间和实际运行时间返回装态
+ * @param {Number} period 项目计划时间
+ * @param {Date} date   项目开始时间
+ * @return {String} 状态字符串
+ */
+function getSchemeType(period,start_date,end_date){
+    let cur_timestamp = end_date?new Date(end_date).getTime():new Date().getTime();
+    let start_timestamp = new Date(start_date).getTime();
+
+    let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
+
+    week = Math.ceil(week);
+
+    if(week > period)
+    {
+        return "error"
+    }
+    else if(week >= period)
+    {
+        return "warning"
+    }
+            
+    return "success";
+}
+export {setCookie,
+        getCookie,
+        clearCookie,
+        creatUuid,
+        date2shortStr,
+        deepCopy,
+        getSchemeStrwithDate,
+        getSchemeType};

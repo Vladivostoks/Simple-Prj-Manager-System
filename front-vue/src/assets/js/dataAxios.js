@@ -147,6 +147,7 @@ function itemGet(uuid)
             {
                 curItem = res[i].item;
                 j = 0;
+                curItem.linkAffairs[j].status = "开始";
                 curItem.linkAffairs[j].name = "开始";
                 item.push(curItem);
             }
@@ -155,6 +156,7 @@ function itemGet(uuid)
                 j = j+1;
                 curItem.linkAffairs[j].name = res[i].data[0].prjname;
                 curItem.linkAffairs[j].status = res[i].data[0].status;
+                curItem.linkAffairs[j].uuid = res[i].data[0].uuid;
             }
         }
 
@@ -246,4 +248,4 @@ function itemDelete(uuid)
     });
 }
 
-export {getOption,affairGet,itemGet,itemPut,itemDelete}
+export {getOption,affairGet,itemGet,itemPut,itemDelete,affairGetWithID}

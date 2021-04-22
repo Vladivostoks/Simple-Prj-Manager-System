@@ -48,6 +48,7 @@
             <span>
                 <vue-pipeline   ref="pipeline"
                                 lineStyle="default"
+                                @select="pipeNodeChoose"
                                 :data="pipelineShowData"
                                 :showArrow="true">
                 </vue-pipeline>
@@ -130,10 +131,10 @@
                 <el-row type="flex" justify="space-around">
                 <el-col :span="24">
                     <el-collapse v-model="activeName" style="width:100%;">
-                        <el-collapse-item title="简介" name="1">
+                        <el-collapse-item title="简介/目的" name="1">
                             <el-input type="textarea"
                                       v-model="currentItem.brief"
-                                      placeholder="输入项目简介"
+                                      placeholder="输入项目简介/目的"
                                       autocomplete="off"></el-input>
                         </el-collapse-item>
                         <el-collapse-item title="负责人" name="2">
@@ -202,6 +203,10 @@
                 </el-row>
             </el-card>
         </el-row>
+        <affair-drawer v-if="drawer"
+                       @close="drawerClose"
+                       :uuid="detailAffairid">
+        </affair-drawer>
     </el-main>
 </el-container>
 </template>
@@ -211,6 +216,7 @@
 import {itemPut,itemDelete,itemGet,getOption,affairGet} from '@/assets/js/dataAxios.js'
 import {creatUuid} from '@/assets/js/common.js'
 import VuePipeline from 'vue-pipeline'
+import affairetailDrawer from '@/components/itemboard/affairdetailDrawer'
 
 const defaultItem = {
                     name:"无项目数据显示",
@@ -220,7 +226,8 @@ const defaultItem = {
                     timeRanges:[new Date(1970,1,1),new Date()],
                     linkAffairs:[{
                         id:"Start",
-                        name:"Start",
+                        name:"开始",
+                        status:"开始",
                         next:[],
                     }]
                   };
@@ -229,6 +236,10 @@ export default {
     name: 'itemPage',
     data() {
         return {
+            /* 详细项目列表开关 */
+            drawer:false,
+            /* 详细项目列表开关 */
+            detailAffairid:"",
             /* 项目列表 */
             items:[],
             // [{
@@ -265,6 +276,7 @@ export default {
     },
     components: {
         "pipe-line":VuePipeline,
+        "affair-drawer":affairetailDrawer
     },
     watch:{
         pipelineShowData(newValue,oldValue){
@@ -339,11 +351,11 @@ export default {
             let weightWithidMap = new Object();
             
             const statusMap={
-                "未开始":"start",
+                "开始":"start",
                 "执行中":"running",
                 "暂停中":"paused",
                 "已完成":"success",
-                "已终止":"failure"
+                "已终止":"failure",
             };
 
             for(let i in affairs)
@@ -351,11 +363,17 @@ export default {
                 let node = new Object({
                     name: affairs[i].name,
                     hint: affairs[i].name,
+                    uuid: affairs[i].uuid,
                     //没状态视为没创建任务
-                    status: statusMap[affairs[i].status]?statusMap[affairs[i].status]:"start",
+                    status: statusMap[affairs[i].status],
                     next: affairs[i].next.slice(0),
                 });
                 
+                if(!node.status)
+                {
+                    delete node.status;
+                }
+
                 ret.push(node);
 
                 //同时记录位置和id,用于后续替换
@@ -406,6 +424,16 @@ export default {
         },
     },
     methods: {
+        drawerClose()
+        {
+            this.drawer = false;
+        },
+        /* 当前pipeline中的node被选中 */
+        pipeNodeChoose(node)
+        {
+            this.detailAffairid = node.uuid;
+            this.drawer = true;
+        },
         /* 后继项目列表改变 */
         nextItemListChange(currentValue)
         {

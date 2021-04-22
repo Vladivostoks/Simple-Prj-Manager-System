@@ -18,6 +18,9 @@
             <el-checkbox v-for="opt in exportOption" :label="opt['name']" :key="opt['name']">{{ opt['name'] }}</el-checkbox>
         </el-checkbox-group>
     </el-form-item>
+    <el-form-item label="过滤/选择" label-width="100px" prop="isChoose">
+        <el-switch @change="filterSwitchChange" v-model="form.isChoose"></el-switch>
+    </el-form-item>
     <el-form-item label="项目类型过滤" label-width="100px" prop="typeFilter">
         <el-select
             v-model="form.typeFilter"
@@ -101,6 +104,8 @@ export default {
             personsList:[],
             /* 输入输出表单 */
             form: {
+                /* 是否开启选择(关闭为过滤) */
+                isChoose:false,
                 /* 类型过滤 */
                 typeFilter:[],
                 /* 人员过滤 */
@@ -189,6 +194,17 @@ export default {
     computed: {},
     watch: {},
     methods: {
+        /**
+         * @description: 修改默认过滤/选择选项
+         */
+        filterSwitchChange()
+        {
+            if(this.form.isChoose)
+            {
+                this.form.typeFilter = this.typeList;
+                this.form.personFilter = this.personsList
+            }
+        },
         /**
          * @description: 从后台获取对应选项范围
          * @param {String} opt 获取选项名称
@@ -368,7 +384,7 @@ export default {
                         }
                     }
                     //执行导出动作                
-                    this.exportAction(columns,dateRange,this.form.typeFilter,this.form.personFilter);
+                    this.exportAction(columns,dateRange,this.form.typeFilter,this.form.personFilter,this.form.isChoose);
 
                     this.$emit("dialog-submit");
                 } else {

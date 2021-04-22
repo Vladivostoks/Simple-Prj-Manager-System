@@ -290,7 +290,7 @@ import item_edit from '@/components/itemboard/dialog'
 import time_line from '@/components/itemboard/timeline'
 import process_line from '@/components/itemboard/progressline'
 import exportOptionForm from '@/components/itemboard/exportForm'
-import {getCookie,creatUuid,date2shortStr} from '@/assets/js/common.js'
+import {getCookie,creatUuid,date2shortStr,getSchemeStrwithDate,getSchemeType} from '@/assets/js/common.js'
 import { exportExcel } from '@/assets/js/exportExcel.js'
 
 /**
@@ -364,30 +364,6 @@ function str_search(dst_obj,content)
         //不支持的类型,直接跳过
         return false;
     }
-}
-
-/**
- * @description: 
- * @param {*} index
- * @param {*} row
- * @return {*}
- */
-function getSchemeStrwithDate(period,date){
-    let cur_timestamp = new Date().getTime();
-    let start_timestamp = new Date(date).getTime();
-
-    let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
-
-    if(week<1)
-    {
-        week = 1;
-    }
-    else
-    {
-        week = Math.ceil(week);
-    }
-
-    return `${week}周/${period}周`;
 }
 
 /**
@@ -582,27 +558,19 @@ export default {
         },
         /* 获取执行进度和当前进度比较字符串 */
         getSchemeType(index,row){
-            let cur_timestamp = new Date().getTime();
-            let start_timestamp = new Date(row.create_date).getTime();
-
-            let week = (cur_timestamp - start_timestamp) / (1000 * 60 * 60 * 24 * 7);
-
-            week = Math.ceil(week);
-
-            if(week > row.period)
-            {
-                return "error"
-            }
-            else if(week >= row.period)
-            {
-                return "warning"
-            }
+            let ret = (this.table_status=='complete')?
+                        getSchemeType(row.period,row.create_date,row.lastupdate_date)
+                        :getSchemeType(row.period,row.create_date)
             
-            return "success";
+            return ret;
         },
         /* 获取规划字符串 */
         getSchemeStr(index,row){
-            return getSchemeStrwithDate(row.period,row.create_date);
+            let ret = (this.table_status=='complete')?
+                        getSchemeStrwithDate(row.period,row.create_date,row.lastupdate_date)
+                        :getSchemeStrwithDate(row.period,row.create_date)
+            
+            return ret;
         },
         /* 时间选择创建时间还是最后更新时间 */
         rangeTypeChange(){
@@ -815,6 +783,8 @@ export default {
                 new_data.uuid = creatUuid();
             }
 
+            //prjtype 转数组兼容原多选
+            new_data.prjtype = new Array(new_data.prjtype);
             //编辑数据更新
             this.affairPut(new_data).then((res)=>{
                 if(res)
@@ -1047,7 +1017,7 @@ export default {
                 }
             }
 
-            this.exportAction = async function (columns,dateRange,typefilter,personfilter){
+            this.exportAction = async function (columns,dateRange,typefilter,personfilter,ischoose){
                 //根据最新到表单项进行导出数据生成
                 let filename = new Date().toString()+" 当前页面导出.xlsx";
                 let head_style = {
@@ -1092,11 +1062,24 @@ export default {
                     let intersection_2 = personfilter.filter(function(v){
                         return data[j]["duty_persons"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
                     })
-                    //过滤类型或者人员包含在导出项中的filter列表中,删除它
-                    if(intersection_1.length != 0 || intersection_2.length != 0)
+
+                    if(ischoose)
                     {
-                        data.splice(j, 1);
-                        continue;
+                        //未包含任意的人员或者是项目类型，删除它
+                        if(intersection_1.length == 0 || intersection_2.length == 0)
+                        {
+                            data.splice(j, 1);
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        //过滤类型或者人员包含在导出项中的filter列表中,删除它
+                        if(intersection_1.length != 0 || intersection_2.length != 0)
+                        {
+                            data.splice(j, 1);
+                            continue;
+                        }
                     }
 
                     for(const k in data[j])
@@ -1108,7 +1091,15 @@ export default {
                         }
                         else if(k == "period")
                         {
-                            data[j][k] = getSchemeStrwithDate(data[j].period,data[j].create_date);
+                            if(data[j].status == "已完成"
+                            || data[j].status == "已终止")
+                            {
+                                data[j][k] = getSchemeStrwithDate(data[j].period,data[j].create_date,data[j].lastupdate_date);
+                            }
+                            else
+                            {
+                                data[j][k] = getSchemeStrwithDate(data[j].period,data[j].create_date);
+                            }
                         }
                         else if(k == "status")
                         {
@@ -1168,7 +1159,7 @@ export default {
         async easyExport(){
             let self = this;
 
-            this.exportAction = async function (columns,dateRange,typefilter,personfilter){
+            this.exportAction = async function (columns,dateRange,typefilter,personfilter,ischoose){
                 var weekCount = function(){
                     let curDate = new Date();
                     let date = new Date();
@@ -1272,11 +1263,23 @@ export default {
                                 return data[j]["duty_persons"].indexOf(v)!==-1 // 利用filter方法来遍历是否有相同的元素
                             })
 
-                            //过滤类型或者人员包含在导出项中的filter列表中,删除它
-                            if(intersection_1.length != 0 || intersection_2.length != 0)
+                            if(ischoose)
                             {
-                                data.splice(j, 1);
-                                continue;
+                                //未包含任意的人员或者是项目类型，删除它
+                                if(intersection_1.length == 0 || intersection_2.length == 0)
+                                {
+                                    data.splice(j, 1);
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                //过滤类型或者人员包含在导出项中的filter列表中,删除它
+                                if(intersection_1.length != 0 || intersection_2.length != 0)
+                                {
+                                    data.splice(j, 1);
+                                    continue;
+                                }
                             }
 
                             for(const k in data[j])

@@ -46,7 +46,6 @@
     <el-form-item label="项目类型" label-width="120px" prop="prjtype">
         <el-select
             v-model="form.prjtype"
-            multiple
             filterable
             allow-create
             default-first-option
@@ -200,7 +199,8 @@ export default {
                     { validator: statusCheck, trigger: 'blur' }
                 ],
                 prjtype: [
-                    { required: true, type: 'array', min: 1, message: '需要选择项目类型', trigger: 'blur' }
+                    //{ required: true, type: 'array', min: 1, message: '需要选择项目类型', trigger: 'blur' }
+                    { required: true, message: '需要选择项目类型', trigger: 'blur' }
                 ],
                 duty_persons: [
                     { required: true, type: 'array', min: 1, message: '需要填写处理人员', trigger: 'blur' }
