@@ -783,8 +783,6 @@ export default {
                 new_data.uuid = creatUuid();
             }
 
-            //prjtype 转数组兼容原多选
-            new_data.prjtype = new Array(new_data.prjtype);
             //编辑数据更新
             this.affairPut(new_data).then((res)=>{
                 if(res)
@@ -1017,7 +1015,13 @@ export default {
                 }
             }
 
-            this.exportAction = async function (columns,dateRange,typefilter,personfilter,ischoose){
+            this.exportAction = async function (columns,
+                                                dateRange,
+                                                typefilter,
+                                                personfilter,
+                                                ischoose,
+                                                withTimeStamp,
+                                                withName){
                 //根据最新到表单项进行导出数据生成
                 let filename = new Date().toString()+" 当前页面导出.xlsx";
                 let head_style = {
@@ -1074,8 +1078,28 @@ export default {
                     }
                     else
                     {
+                        let filter = false;
+
+                        //仅相等时候过滤类型或者人员和导出项中的filter列表中的某个过滤项完全相等时候,删除它
+                        for(let k in personfilter)
+                        {
+                            if(personfilter[k] == data[j]["duty_persons"])
+                            {
+                                filter = true;
+                                break;
+                            }
+                        }
+                                
+                        for(let k in typefilter)
+                        {
+                            if(typefilter[k] == data[j]["prjtype"])
+                            {
+                                filter = true;
+                                break;
+                            }
+                        }
                         //过滤类型或者人员包含在导出项中的filter列表中,删除它
-                        if(intersection_1.length != 0 || intersection_2.length != 0)
+                        if(filter)
                         {
                             data.splice(j, 1);
                             continue;
@@ -1125,10 +1149,10 @@ export default {
                             //查询具有具体时间的列
                             if(columns[key].dateRange)
                             {
-                                // console.dir("-----------------------");
-                                // console.dir(timelineData);
-                                // console.dir(columns[key].dateRange);
-                                let content = time_line.methods.line2Text(timelineData,columns[key].dateRange);
+                                let content = time_line.methods.line2Text(timelineData,
+                                                                          columns[key].dateRange,
+                                                                          withTimeStamp,
+                                                                          withName);
                                 if(content)
                                 {
                                     data[i][columns[key].name] = content;
@@ -1159,7 +1183,13 @@ export default {
         async easyExport(){
             let self = this;
 
-            this.exportAction = async function (columns,dateRange,typefilter,personfilter,ischoose){
+            this.exportAction = async function (columns,
+                                                dateRange,
+                                                typefilter,
+                                                personfilter,
+                                                ischoose,
+                                                withTimeStamp,
+                                                withName){
                 var weekCount = function(){
                     let curDate = new Date();
                     let date = new Date();
@@ -1274,8 +1304,28 @@ export default {
                             }
                             else
                             {
+                                let filter = false;
+
+                                //仅相等时候
+                                for(let k in personfilter)
+                                {
+                                    if(personfilter[k] == data[j]["duty_persons"])
+                                    {
+                                        filter = true;
+                                        break;
+                                    }
+                                }
+                                
+                                for(let k in typefilter)
+                                {
+                                    if(typefilter[k] == data[j]["prjtype"])
+                                    {
+                                        filter = true;
+                                        break;
+                                    }
+                                }
                                 //过滤类型或者人员包含在导出项中的filter列表中,删除它
-                                if(intersection_1.length != 0 || intersection_2.length != 0)
+                                if(filter)
                                 {
                                     data.splice(j, 1);
                                     continue;
@@ -1320,7 +1370,10 @@ export default {
                                         // console.dir("-----------------------");
                                         // console.dir(timelineData);
                                         // console.dir(columns[key].dateRange);
-                                        let content = time_line.methods.line2Text(timelineData,columns[key].dateRange);
+                                        let content = time_line.methods.line2Text(timelineData,
+                                                                                  columns[key].dateRange,
+                                                                                  withTimeStamp,
+                                                                                  withName);
                                         if(content)
                                         {
                                             data[i][columns[key].name] = content;

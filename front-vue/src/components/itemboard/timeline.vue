@@ -177,7 +177,7 @@ export default {
          * @param {Array} dateRange 起始时间和结束时间Date对象数组 
          * @return {String} 时间线文本
          */
-        line2Text(contentData,DateRange){
+        line2Text(contentData,DateRange,withTimeStamp,withName){
             let text = "";
             
             //只取时间范围内到
@@ -187,7 +187,19 @@ export default {
                     && contentData[i].timestamp < DateRange[1].getTime())
                 {
                     //合成内容包括实施&结果
-                    text += new Date(contentData[i].timestamp).toISOString()+"("+contentData[i].author+")"+":\n";
+                    if(withTimeStamp && withName)
+                    {
+                        text += new Date(contentData[i].timestamp).toISOString()+"("+contentData[i].author+")"+":\n";
+                    }
+                    else if(withName)
+                    {
+                        text += contentData[i].author+":\n";
+
+                    }
+                    else if(withTimeStamp)
+                    {
+                        text += new Date(contentData[i].timestamp).toISOString()+":\n";
+                    }
                     text += contentData[i].progress_content
                     if(!text.endsWith("\n"))
                     {

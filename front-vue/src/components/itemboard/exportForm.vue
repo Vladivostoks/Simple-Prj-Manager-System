@@ -6,22 +6,32 @@
   :visible.sync="formVisible"
   :before-close="handleClose"
   :close-on-click-modal="false"
-  width="30vw">
+  width="35vw">
   <el-form :model="form" ref="form" size="mini" :rules="rules">
-    <el-form-item label="导出选项" label-width="100px" prop="checkedOption">
+    <el-form-item label="导出选项" label-width="120px" prop="checkedOption">
         <el-checkbox :indeterminate="isIndeterminate" 
                      v-model="form.checkAll" 
                      @change="handleCheckAllChange">全选</el-checkbox>
         <div style="margin: 15px 0;"></div>
-        <el-checkbox-group v-model="form.checkedOption" 
-                           @change="exportOptChange">
-            <el-checkbox v-for="opt in exportOption" :label="opt['name']" :key="opt['name']">{{ opt['name'] }}</el-checkbox>
-        </el-checkbox-group>
+        <el-select
+            v-model="form.checkedOption"
+            multiple
+            filterable
+            default-first-option
+            style="width:100%"
+            placeholder="选择导出列">
+            <el-option
+                v-for="item in exportOption"
+                :key="item"
+                :label="item['name']"
+                :value="item['name']">
+            </el-option>
+        </el-select>
     </el-form-item>
-    <el-form-item label="过滤/选择" label-width="100px" prop="isChoose">
+    <el-form-item label="过滤/选择" label-width="120px" prop="isChoose">
         <el-switch @change="filterSwitchChange" v-model="form.isChoose"></el-switch>
     </el-form-item>
-    <el-form-item label="项目类型过滤" label-width="100px" prop="typeFilter">
+    <el-form-item label="项目类型过滤/选择" label-width="120px" prop="typeFilter">
         <el-select
             v-model="form.typeFilter"
             multiple
@@ -37,7 +47,7 @@
             </el-option>
         </el-select>
     </el-form-item>
-    <el-form-item label="执行人员过滤" label-width="100px" prop="personFilter">
+    <el-form-item label="执行人员过滤/选择" label-width="120px" prop="personFilter">
     <el-select
         v-model="form.personFilter"
         multiple
@@ -53,10 +63,16 @@
         </el-option>
     </el-select>
     </el-form-item>
-    <el-form-item v-if="isContent" label="按照周导出" label-width="100px" prop="isWeekRange">
+    <el-form-item v-if="isContent" label="按照周导出" label-width="120px" prop="isWeekRange">
         <el-switch v-model="form.isWeekRange"></el-switch>
     </el-form-item>
-    <el-form-item v-if="isContent" label="导出内容区间" label-width="100px" prop="contentTimeRange">
+    <el-form-item v-if="isContent" label="时间戳" label-width="120px" prop="withTimestamp">
+        <el-switch v-model="form.withTimestamp"></el-switch>
+    </el-form-item>
+    <el-form-item v-if="isContent" label="人员名称" label-width="120px" prop="withName">
+        <el-switch v-model="form.withName"></el-switch>
+    </el-form-item>
+    <el-form-item v-if="isContent" label="导出内容区间" label-width="120px" prop="contentTimeRange">
         <el-date-picker
             v-model="form.contentTimeRange"
             type="daterange"
@@ -79,6 +95,7 @@
 <script>
 import axios from 'axios'
 import {date2shortStr} from '@/assets/js/common.js'
+import {deepCopy} from '@/assets/js/common.js'
 
 export default {
     name: 'exportOptionForm',
@@ -116,6 +133,10 @@ export default {
                 checkedOption:[],
                 /* 按照周划分导出 */
                 isWeekRange: true,
+                /* 内容导出携带时间戳 */
+                withTimestamp: true,
+                /* 内容导出携带姓名 */
+                withName: true,
                 /* 导出时间范围 */
                 contentTimeRange:[new Date(0),new Date()]
             },
@@ -251,26 +272,26 @@ export default {
          * @description: 导出选项修改触发
          * @param {Array} val 修改后到值
          */    
-        exportOptChange(val) {
-            let checkedCount = val.length;
-            let total_opt_num = 0;
+        // exportOptChange(val) {
+        //     let checkedCount = val.length;
+        //     let total_opt_num = 0;
 
-            for(let key in this.exportOption)
-            {
-                total_opt_num++;
-            }
-            this.checkAll = checkedCount === total_opt_num;
-            this.isIndeterminate = checkedCount > 0 && checkedCount < total_opt_num;
+        //     for(let key in this.exportOption)
+        //     {
+        //         total_opt_num++;
+        //     }
+        //     this.checkAll = checkedCount === total_opt_num;
+        //     this.isIndeterminate = checkedCount > 0 && checkedCount < total_opt_num;
 
-            if(this.form.checkedOption.indexOf("具体内容") > -1)
-            {
-                this.isContent = true;
-            }
-            else
-            {
-                this.isContent = false;
-            }
-        },
+        //     if(this.form.checkedOption.indexOf("具体内容") > -1)
+        //     {
+        //         this.isContent = true;
+        //     }
+        //     else
+        //     {
+        //         this.isContent = false;
+        //     }
+        // },
         /**
          * @description: 对话关闭钩子函数
          * @param {Object} done 关闭动作回调
@@ -299,92 +320,98 @@ export default {
             this.$refs['form'].validate((valid) => {
                 if (valid) {
                     this.formVisible = false;
-                    let columns = this.exportOption;
                     let dateRange = [new Date(1970,0,0),new Date()];
-
-                    //根据表单选择项，重新更新
-                    for(let key in columns)
+                    let columns = new Object();
+                    
+                    //按照checkedOption排列 根据表单选择项，重新更新
+                    for(let i in this.form.checkedOption)
                     {
-                        if(!(this.form.checkedOption.indexOf(columns[key].name) > -1))
+                        for(let key in this.exportOption)
                         {
-                            delete columns[key];
-                        }
-                        else
-                        {
-                            //需要将具体内容这列替换成具体到时间列
-                            if(this.form.checkedOption.indexOf("具体内容") > -1 
-                                && columns[key].name == "具体内容")
+                            if(this.exportOption[key].name == this.form.checkedOption[i])
                             {
-                                let wpx = columns[key].wpx;
-                                let alignment = columns[key].alignment;
-
-                                dateRange[0] = columns[key].dateRange[0].getTime() >
-                                                this.form.contentTimeRange[0].getTime()?
-                                                columns[key].dateRange[0]:this.form.contentTimeRange[0];
-                                if(this.form.isWeekRange)
+                                columns[key] = this.exportOption[key];
+                                if(columns[key]["name"] == "具体内容")
                                 {
-                                    //导出时间从开始日所在周开始日开始，结束日所在周最后一日结束
-                                    let DayOfWeek = this.form.contentTimeRange[1].getDay(); //今天本周的第几天
-                                    let Day = this.form.contentTimeRange[1].getDate(); //当前日
-                                    let Month = this.form.contentTimeRange[1].getMonth(); //当前月
-                                    let Year = this.form.contentTimeRange[1].getFullYear(); //当前年
+                                    //需要将具体内容这列替换成具体到时间列
+                                    let wpx = columns[key].wpx;
+                                    let alignment = columns[key].alignment;
 
-                                    dateRange[1] = new Date(Year, Month, Day - DayOfWeek+7);
-
-                                    DayOfWeek = dateRange[0].getDay(); //今天本周的第几天
-                                    Day = dateRange[0].getDate(); //当前日
-                                    Month = dateRange[0].getMonth(); //当前月
-                                    Year = dateRange[0].getFullYear(); //当前年
-
-                                    dateRange[0] = new Date(Year, Month, Day - DayOfWeek);
-                                }
-                                else
-                                {
-                                    dateRange[1] = this.form.contentTimeRange[1];
-                                }
-
-                                //起始时间从当前项目中最早的开始算,前开后闭区间
-                                for(let date = dateRange[1];date.getTime()>dateRange[0].getTime();)
-                                {
-                                    //按照每天划分
-                                    let nowDay = date.getDate();
-                                    let nowMonth = date.getMonth();
-                                    let nowYear = date.getFullYear();
-                                    let timeName;
-                                    let nextDate;
-
+                                    dateRange[0] = columns[key].dateRange[0].getTime() >
+                                                    this.form.contentTimeRange[0].getTime()?
+                                                    columns[key].dateRange[0]:this.form.contentTimeRange[0];
                                     if(this.form.isWeekRange)
                                     {
-                                        timeName = date2shortStr(new Date(nowYear, nowMonth, nowDay-2));
+                                        //导出时间从开始日所在周开始日开始，结束日所在周最后一日结束
+                                        let DayOfWeek = this.form.contentTimeRange[1].getDay(); //今天本周的第几天
+                                        let Day = this.form.contentTimeRange[1].getDate(); //当前日
+                                        let Month = this.form.contentTimeRange[1].getMonth(); //当前月
+                                        let Year = this.form.contentTimeRange[1].getFullYear(); //当前年
+
+                                        dateRange[1] = new Date(Year, Month, Day - DayOfWeek+7);
+
+                                        DayOfWeek = dateRange[0].getDay(); //今天本周的第几天
+                                        Day = dateRange[0].getDate(); //当前日
+                                        Month = dateRange[0].getMonth(); //当前月
+                                        Year = dateRange[0].getFullYear(); //当前年
+
+                                        dateRange[0] = new Date(Year, Month, Day - DayOfWeek);
                                     }
                                     else
                                     {
-                                        timeName = date2shortStr(date);
+                                        dateRange[1] = this.form.contentTimeRange[1];
                                     }
 
-                                    columns[timeName]=new Object();
-                                    columns[timeName].name = timeName;
-                                    columns[timeName].wpx = wpx;
-                                    columns[timeName].alignment = alignment;
-
-                                    if(this.form.isWeekRange)
+                                    //起始时间从当前项目中最早的开始算,前开后闭区间
+                                    for(let date = dateRange[1];date.getTime()>dateRange[0].getTime();)
                                     {
-                                        nextDate = new Date(nowYear, nowMonth, nowDay-7);
-                                    }
-                                    else
-                                    {
-                                        nextDate = new Date(nowYear, nowMonth, nowDay-1);
-                                    }
+                                        //按照每天划分
+                                        let nowDay = date.getDate();
+                                        let nowMonth = date.getMonth();
+                                        let nowYear = date.getFullYear();
+                                        let timeName;
+                                        let nextDate;
 
-                                    columns[timeName].dateRange = [nextDate,date];
-                                    date=nextDate;
+                                        if(this.form.isWeekRange)
+                                        {
+                                            timeName = date2shortStr(new Date(nowYear, nowMonth, nowDay-2));
+                                        }
+                                        else
+                                        {
+                                            timeName = date2shortStr(date);
+                                        }
+
+                                        columns[timeName]=new Object();
+                                        columns[timeName].name = timeName;
+                                        columns[timeName].wpx = wpx;
+                                        columns[timeName].alignment = alignment;
+
+                                        if(this.form.isWeekRange)
+                                        {
+                                            nextDate = new Date(nowYear, nowMonth, nowDay-7);
+                                        }
+                                        else
+                                        {
+                                            nextDate = new Date(nowYear, nowMonth, nowDay-1);
+                                        }
+
+                                        columns[timeName].dateRange = [nextDate,date];
+                                        date=nextDate;
+                                    }
+                                    delete columns[key];
                                 }
-                                delete columns[key];
                             }
                         }
                     }
+ 
                     //执行导出动作                
-                    this.exportAction(columns,dateRange,this.form.typeFilter,this.form.personFilter,this.form.isChoose);
+                    this.exportAction(columns,dateRange,
+                                      this.form.typeFilter,
+                                      this.form.personFilter,
+                                      this.form.isChoose,
+                                      this.form.withTimestamp,
+                                      this.form.withName
+                                      );
 
                     this.$emit("dialog-submit");
                 } else {

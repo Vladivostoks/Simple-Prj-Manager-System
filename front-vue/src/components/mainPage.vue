@@ -46,7 +46,7 @@ export default {
   name: 'mainPage',
   data() {
         return {
-            version : "v0.1.1",
+            version : "v0.1.3",
             username : getCookie("username"),
             user_prop : getCookie("userprop"),
             iconName : "el-icon-user-solid",
