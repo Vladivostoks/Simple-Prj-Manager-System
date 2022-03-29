@@ -112,14 +112,14 @@
             </el-table-column>
             <el-table-column
                 prop="region"
-                min-width="5%"
+                min-width="7%"
                 :filters="regionOpt"
                 :filter-method="tableFilter"
-                label="区域">
+                label="区域/阶段">
             </el-table-column>
             <el-table-column
                 prop="prjmodel"
-                min-width="5%"
+                min-width="7%"
                 :filters="modelOpt"
                 :filter-method="tableFilter"
                 label="产品型号">
@@ -160,7 +160,7 @@
             </el-table-column>
             <el-table-column
                 prop="brief"
-                min-width="17%"
+                min-width="15%"
                 label="原始需求/反馈">
                 <template v-slot="scope">
                 <pre>{{ scope.row.brief }}</pre>
@@ -168,7 +168,7 @@
             </el-table-column>
             <el-table-column
                 prop="svnurl"
-                min-width="10%"
+                min-width="8%"
                 label="svn/git地址">
             </el-table-column>
             <el-table-column
@@ -270,13 +270,13 @@
                        :exportAction="exportAction"
                        :exportOption="exportOption"></export-option>
     </el-main>
-    <el-footer height="40px">
+    <!-- <el-footer height="40px">
         <el-pagination
          layout="prev, pager, next"
          :page-size="2"
          :total="show_data.length">
         </el-pagination>
-    </el-footer>
+    </el-footer> -->
 </el-container>
 </template>
 

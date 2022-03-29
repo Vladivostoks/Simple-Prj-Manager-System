@@ -12,7 +12,7 @@
                 <el-form-item label="创建日期">
                     <span>{{ new Date(affair.create_date) }}</span>
                 </el-form-item>
-                <el-form-item label="区域">
+                <el-form-item label="区域/项目阶段">
                     <span>{{ affair.region }}</span>
                 </el-form-item>
                 <el-form-item label="产品型号">

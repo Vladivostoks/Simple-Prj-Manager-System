@@ -8,6 +8,7 @@ FilePath: /Simple-Prj-Manager-System/backend-flask/src/main.py
 '''
 # -*- coding:utf-8 -*- 
 import os
+import socket
 import sys
 from pprint import pprint 
 from flask import Flask,abort
@@ -65,10 +66,27 @@ api.add_resource(Option,'/option')
 ##
 api.add_resource(Items,'/item')
 
+def check_port(ip, port=80):
+    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    try:
+        s.connect((ip, port))
+        s.shutdown(2)
+        return False 
+    except socket.error as e:
+        return True 
+ 
 if __name__ == '__main__':
     #make data dir
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
+    #check port from 80
+    port = 80
+    while 1:
+        if check_port("localhost",port):
+            break
+        else:
+            port = port + 1
+
     #update Data Model
     DataVersion(AffairList(),
                 AffairContent(),
@@ -78,4 +96,4 @@ if __name__ == '__main__':
                 OptionData("prjmodel_opt"),
                 OptionData("dutyperson_opt"),
                 OptionData("relateperson_opt"))
-    app.run(debug=False,host='0.0.0.0',port=80)
+    app.run(debug=False,host='0.0.0.0',port=port)

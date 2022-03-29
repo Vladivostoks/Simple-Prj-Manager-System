@@ -12,9 +12,9 @@
                 <el-menu-item index="shortItem">
                     <div class="el-icon-edit-outline"> 事 务 </div>
                 </el-menu-item>
-                <el-menu-item index="baselineItem">
+                <!-- <el-menu-item index="baselineItem">
                     <div class="el-icon-guide"> 项 目 </div>
-                </el-menu-item>
+                </el-menu-item> -->
                 <el-menu-item index="contrlBroad" v-if="user_prop=='administrators'">
                     <div class="el-icon-setting"> 系 统 </div>
                 </el-menu-item>
@@ -46,7 +46,7 @@ export default {
   name: 'mainPage',
   data() {
         return {
-            version : "v0.1.3",
+            version : "v0.1.4",
             username : getCookie("username"),
             user_prop : getCookie("userprop"),
             iconName : "el-icon-user-solid",

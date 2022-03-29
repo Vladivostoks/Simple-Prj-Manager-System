@@ -200,11 +200,13 @@ export default {
                     {
                         text += new Date(contentData[i].timestamp).toISOString()+":\n";
                     }
+                    text += "[实施]:"
                     text += contentData[i].progress_content
                     if(!text.endsWith("\n"))
                     {
                         text += "\n";
                     }
+                    text += "[结果/下周计划]:"
                     text += contentData[i].progress_result;
                     if(i != (contentData.length-1))
                     {
