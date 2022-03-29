@@ -21,9 +21,9 @@
                 placeholder="输入项目名称"
                 autocomplete="off"></el-input>
     </el-form-item>
-    <el-form-item label="区域" label-width="120px" prop="region">
+    <el-form-item label="区域/开发阶段" label-width="120px" prop="region">
       <el-input v-model="form.region"
-                placeholder="输入项目归属区域"
+                placeholder="输入定制项目区域/或产品开发阶段"
                 autocomplete="off"></el-input>
     </el-form-item>
     <el-form-item label="产品型号" label-width="120px" prop="prjmodel">
