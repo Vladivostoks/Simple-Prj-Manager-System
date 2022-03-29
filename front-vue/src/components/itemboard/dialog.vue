@@ -46,6 +46,7 @@
     <el-form-item label="项目类型" label-width="120px" prop="prjtype">
         <el-select
             v-model="form.prjtype"
+            multiple
             filterable
             allow-create
             default-first-option
