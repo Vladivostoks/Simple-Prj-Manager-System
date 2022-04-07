@@ -46,7 +46,7 @@ export default {
   name: 'mainPage',
   data() {
         return {
-            version : "v0.1.4",
+            version : "v0.1.6",
             username : getCookie("username"),
             user_prop : getCookie("userprop"),
             iconName : "el-icon-user-solid",
@@ -54,6 +54,7 @@ export default {
             round   : false,
             global  : false,
             curPage : "shortItem",
+            intervalCheck : null,
         }
     },
     props: {},
@@ -79,13 +80,34 @@ export default {
             this.$router.replace({
                 path: '/mainPage/shortItem'
             });
+
+            //设置循环检测定时器
+            this.intervalCheck = setInterval(()=>{
+                if(getCookie("username") == "" || getCookie("userprop") == "")
+                {
+                    //清除定时器
+                    clearInterval(this.intervalCheck)
+                    //弹出到主界面
+                    this.$router.push({ path: '/' });
+                    this.$alert('登录信息失效，请重新从主页登陆', '用户登录失效', {
+                        type:"error",
+                        confirmButtonText: '确定',
+                    });
+                }
+            }, 1000);
         }
         else{
             this.logout();
         }
     },
     updated() {},
-    destroyed() {}
+    destroyed() {
+        if(this.intervalCheck)
+        {
+            //清除定时器
+            clearInterval(this.intervalCheck)
+        }
+    }
 }
 </script>
 
@@ -107,6 +129,16 @@ export default {
 
     .el-header h1{
         height:8vh;
+    }
+
+    .el-footer {
+        background-color: black;
+        color: wheat;
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        align-content: stretch;
+        align-items: center;
     }
 
     .el-menu-item{

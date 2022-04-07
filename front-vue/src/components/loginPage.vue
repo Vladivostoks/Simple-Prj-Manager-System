@@ -95,6 +95,18 @@ export default {
             let form = new Object();
             let self = this;
 
+            //检查用户名是否为中文
+            if(escape(this.username).indexOf("%u")<0)
+            {
+                //纯英文，进行提示
+                this.$message({
+                    type: 'error',
+                    message: '用户名输入请使用中文名'
+                });
+
+                return
+            }
+
             form.username = this.username;
             form.passwd = CryptoJS.SHA256(this.passwd).toString();
             // 成功则跳转到主界面,记入cookie
